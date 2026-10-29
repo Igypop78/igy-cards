@@ -1,0 +1,12 @@
+{
+  "name": "igy-cards",
+  "version": "1.0.0",
+  "description": "Igy Cards – custom Lovelace cards for Home Assistant (energy, weather, heating, rooms, entities, buttons, markdown, circuits, battery).",
+  "homepage": "https://github.com/Igypop78/igy-cards",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "check": "node scripts/build.js --check"
+  }
+}

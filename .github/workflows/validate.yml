@@ -1,0 +1,26 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: plugin
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Syntax každej karty
+        run: for f in src/*.js dist/igy-cards.js; do node --check "$f"; done
+      - name: dist/igy-cards.js je aktuálny
+        run: node scripts/build.js --check

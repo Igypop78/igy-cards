@@ -1,0 +1,60 @@
+name: Release
+
+# Pri zmene verzie v package.json (alebo CHANGELOG.md) na vetve main automaticky vytvorí tag vX.Y.Z
+# a GitHub vydanie s popisom zo sekcie CHANGELOG.md a priloženým dist/igy-cards.js – HACS potom ponúkne aktualizáciu.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - CHANGELOG.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Kontrola, že dist/igy-cards.js je zostavený zo src/
+        run: node scripts/build.js --check
+
+      - name: Verzia a poznámky
+        id: v
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          # sekcia "## [VERSION]" až po ďalšiu "## ["
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" {on=1; next}
+            on && /^## \[/ {exit}
+            on {print}
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Verzia $VERSION" > notes.md
+          cat notes.md
+
+      - name: Vytvoriť vydanie
+        if: steps.v.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --title "v${{ steps.v.outputs.version }}" \
+            --notes-file notes.md \
+            dist/igy-cards.js
