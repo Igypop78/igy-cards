@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc35a"/><stop offset="1" stop-color="#ff8a2a"/></linearGradient></defs>
+<rect width="256" height="256" rx="56" fill="url(#g)"/>
+<text x="128" y="160" text-anchor="middle" font-family="Poppins, Montserrat, Arial Rounded MT Bold, Helvetica, sans-serif" font-weight="800" font-size="104" fill="#1d1b33" letter-spacing="-4">igy</text>
+<rect x="72" y="186" width="112" height="10" rx="5" fill="#1d1b33" fill-opacity=".85"/>
+</svg>

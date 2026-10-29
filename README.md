@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/icon.png" width="120" alt="Igy Cards"></p>
+
 # Igy Cards
 
 Ten custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits, battery/BMS and cameras. All cards ship in a single file, so one HACS install gives you all of them.
