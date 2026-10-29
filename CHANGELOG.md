@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] – 2026-10-29
+
+- **Nová karta igy-camera-card** (bývalá kamery-card) – mriežka kamier cez WebRTC (go2rtc / Frigate), na celej obrazovke najprv malý stream a potom plné rozlíšenie, zoom a posun prstami. Má vizuálny editor (kamery, streamy, pomer strán, stĺpce, režimy, snímka pri načítaní) a voľbu `show_name`. Vyžaduje WebRTC Camera (AlexxIT) z HACS.
+- Snímka pri načítaní (`poster`) už nemá predvolenú adresu – treba ju zadať v konfigurácii.
+- Nové náhľady kariet v README v predvolenej svetlej téme Home Assistantu.
+
 ## [1.0.0] – 2026-10-29
 
 Prvé vydanie balíka – 9 kariet v jednom súbore `igy-cards.js`:

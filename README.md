@@ -1,6 +1,6 @@
 # Igy Cards
 
-Nine custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits and battery/BMS. All cards ship in a single file, so one HACS install gives you all of them.
+Ten custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits, battery/BMS and cameras. All cards ship in a single file, so one HACS install gives you all of them.
 
 > The card UI is in **Slovak** (built for a Slovak home with PV, battery and a gas boiler). Every card has a visual editor; nothing needs a build step or extra dependencies.
 
@@ -19,12 +19,15 @@ Nine custom Lovelace cards for Home Assistant in one shared visual style – ene
 | Markdown | `custom:igy-markdown-card` | Markdown/templates in the same style, `---` splits content into groups |
 | Circuits | `custom:igy-circuits-card` | Power per circuit and phase, collapsible breaker groups |
 | Battery | `custom:igy-battery-card` | Main battery meter (e.g. Victron SmartShunt) and a table of individual BMS (SOC, cell delta, temperature, cycles, balancing) |
+| Cameras | `custom:igy-camera-card` | Camera grid via WebRTC (go2rtc / Frigate); tap opens full screen with fast low-res start, pinch zoom and pan. Requires [WebRTC Camera](https://github.com/AlexxIT/WebRTC) |
 
 | | | |
 |---|---|---|
 | ![Weather](docs/images/weather.webp) | ![Thermostats](docs/images/thermostat.webp) | ![Circuits](docs/images/circuits.webp) |
 | ![Battery](docs/images/battery.webp) | ![Entities](docs/images/entities.webp) | ![Buttons](docs/images/buttons.webp) |
-| ![Rooms](docs/images/area.webp) | ![Markdown](docs/images/markdown.webp) | |
+| ![Rooms](docs/images/room.webp) | ![Cameras](docs/images/camera.webp) | ![Markdown](docs/images/markdown.webp) |
+
+Screenshots use the default Home Assistant light theme with sample data.
 
 ## Installation
 
@@ -121,6 +124,18 @@ packs:
     balancing: sensor.bms_1_balancing   # JK BMS: 0 off, 1/2 balancing
 ```
 
+```yaml
+type: custom:igy-camera-card           # needs WebRTC Camera (AlexxIT) from HACS
+columns: 2
+cameras:
+  - garden                             # go2rtc streams garden / garden_sub
+  - name: entrance
+    main: entrance_main
+    sub: entrance_sub
+    aspect: 16/9
+poster: http://frigate:5000/api/{name}/latest.jpg?h=480   # optional still image while loading
+```
+
 All options of each card are described in the comment at the top of its source file in [`src/`](src).
 
 ### Theme
@@ -144,6 +159,7 @@ hc-surface-line: 'rgba(255,255,255,.07)'
 | `custom:home-markdown-card` | `custom:igy-markdown-card` |
 | `custom:home-circuits-card` | `custom:igy-circuits-card` |
 | `custom:home-battery-card` | `custom:igy-battery-card` |
+| `custom:kamery-card` | `custom:igy-camera-card` |
 
 The options are unchanged – only `type` changes. Remove the old per-card resources afterwards.
 
