@@ -1,4 +1,4 @@
-/*! igy-cards v1.2.0 – 10 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
+/*! igy-cards v1.3.0 – 10 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
 
 /* ===== igy-energy-card ===== */
 /*
@@ -30,9 +30,105 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Strecha": "Roof",
+    "Prístrešok": "Carport",
+    "Solár": "Solar",
+    "Batéria": "Battery",
+    "Sieť": "Grid",
+    "Plyn": "Gas",
+    "Voda": "Water",
+    "TUV": "Hot water",
+    "Energia": "Energy",
+    "Tento týždeň": "This week",
+    "Minulý týždeň": "Last week",
+    "Dnes": "Today",
+    "Včera": "Yesterday",
+    "ešte": "still",
+    "dnes": "today",
+    "Prehľad": "Overview",
+    "Deň": "Day",
+    "Týždeň": "Week",
+    "Mesiac": "Month",
+    "Rok": "Year",
+    "Načítavam…": "Loading…",
+    "Dáta z Energy dashboardu sa nepodarilo načítať.": "Could not load data from the Energy dashboard.",
+    "V Energy dashboarde nie sú nastavené žiadne zdroje.": "No sources are configured in the Energy dashboard.",
+    "spotreba domu": "home consumption",
+    "bilancia domu": "home balance",
+    "solár": "solar",
+    "batéria": "battery",
+    "sieť": "grid",
+    "Výroba FVE": "Solar production",
+    "Predaj do siete": "Export to grid",
+    "Nákup zo siete": "Import from grid",
+    "Štatistiky pre Prehľad (prázdne = z Energy dashboardu)": "Overview statistics (empty = from the Energy dashboard)",
+    "Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda": "Energy overview: consumption and its sources, solar, battery, grid, gas, water",
+    "Všeobecné": "General",
+    "Teplá úžitková voda": "Hot water",
+    "Nadpis karty": "Card title",
+    "Spotreba domu – výkon": "Home consumption – power",
+    "Mierka pruhu spotreby": "Consumption bar scale",
+    "Prehľad (deň / týždeň / mesiac / rok)": "Overview (day / week / month / year)",
+    "Dnešné súčty v dlaždiciach": "Today’s totals in the tiles",
+    "Výkon FVE spolu": "Total PV power",
+    "Mierka FVE": "PV scale",
+    "PV1 – výkon": "PV1 – power",
+    "PV1 – názov": "PV1 – name",
+    "PV2 – výkon": "PV2 – power",
+    "PV2 – názov": "PV2 – name",
+    "Predpoveď – zostávajúca výroba dnes": "Forecast – remaining production today",
+    "Nabitie (SOC %)": "State of charge (SOC %)",
+    "Výkon batérie": "Battery power",
+    "Otočiť znamienko výkonu": "Invert power sign",
+    "Mierka výkonu batérie": "Battery power scale",
+    "Výkon siete": "Grid power",
+    "Mierka siete": "Grid scale",
+    "Plyn – okamžitý výkon / prietok": "Gas – current power / flow",
+    "Mierka plynu": "Gas scale",
+    "Stav plynomeru": "Gas meter reading",
+    "Voda – prietok": "Water – flow",
+    "Mierka vody": "Water scale",
+    "Stav vodomeru": "Water meter reading",
+    "Teplota v zásobníku": "Tank temperature",
+    "Studená (modrá)": "Cold (blue)",
+    "Horúca (červená)": "Hot (red)",
+    "Výroba FVE spolu (kWh)": "Total PV production (kWh)",
+    "Výroba PV1 (kWh)": "PV1 production (kWh)",
+    "Výroba PV2 (kWh)": "PV2 production (kWh)",
+    "Energia do batérie (kWh)": "Energy into battery (kWh)",
+    "Energia z batérie (kWh)": "Energy from battery (kWh)",
+    "Odber zo siete (kWh)": "Grid import (kWh)",
+    "Náklad na odber": "Import cost",
+    "Dodávka do siete (kWh)": "Grid export (kWh)",
+    "Príjem z dodávky": "Export compensation",
+    "Spotreba plynu": "Gas consumption",
+    "Náklad na plyn": "Gas cost",
+    "Spotreba vody": "Water consumption",
+    "Náklad na vodu": "Water cost",
+    "W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.": "W or kW. Without it, consumption is calculated from solar, battery and grid.",
+    "Pri tejto hodnote je pruh plný.": "The bar is full at this value.",
+    "Rozbaľovací prehľad dole, dáta z Energy dashboardu.": "Collapsible overview at the bottom, data from the Energy dashboard.",
+    "Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.": "E.g. “today 21.5 kWh” under solar, battery and grid.",
+    "Ak chýba, sčíta sa PV1 + PV2.": "If missing, PV1 + PV2 are added up.",
+    "Voliteľné – pruh solára sa rozdelí na dve farby.": "Optional – the solar bar is split into two colors.",
+    "Napr. Solcast „forecast remaining today“ (kWh).": "E.g. Solcast “forecast remaining today” (kWh).",
+    "Karta počíta + = vybíjanie, − = nabíjanie.": "The card expects + = discharging, − = charging.",
+    "Zapni, ak senzor ukazuje + pri nabíjaní.": "Enable if the sensor shows + while charging.",
+    "Karta počíta + = odber zo siete, − = predaj.": "The card expects + = import, − = export.",
+    "Zapni, ak senzor ukazuje + pri predaji.": "Enable if the sensor shows + while exporting.",
+    "Voliteľné – zobrazí sa pod pruhom plynu.": "Optional – shown under the gas bar.",
+    "Voliteľné – zobrazí sa pod pruhom vody.": "Optional – shown under the water bar.",
+    "Voliteľné – farba pruhu podľa teploty.": "Optional – bar color follows the temperature."
+  };
+
   const VERSION = '0.7.1';
 
-  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: 'Energia', overview: true };
+  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true };
   const COL = { pv1: '#ff8a1f', pv2: '#ffc27a', sol: '#ff9f0a', bat: '#40c8e0', chg: '#30d158', dis: '#ff6961', imp: '#ff6961', exp: '#30d158', gas: '#ffd60a', wat: '#0a84ff' };
   const IC = {
     sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
@@ -55,7 +151,7 @@
       const has = (id) => hass && hass.states[id] ? id : undefined;
       const c = {
         home_power: has('sensor.home_actual_power_keep'), solar_power: has('sensor.pv_power_inverter_keep'),
-        pv1_power: has('sensor.pv1_power_inverter_keep'), pv1_name: 'Strecha', pv2_power: has('sensor.pv2_power_inverter_keep'), pv2_name: 'Prístrešok',
+        pv1_power: has('sensor.pv1_power_inverter_keep'), pv1_name: _('Strecha'), pv2_power: has('sensor.pv2_power_inverter_keep'), pv2_name: _('Prístrešok'),
         battery_soc: has('sensor.smartshunt_soc_keep'), battery_power: has('sensor.smartshunt_power_keep'), battery_invert: !!has('sensor.smartshunt_power_keep'),
         grid_power: has('sensor.em_main_power_keep'), solar_forecast: has('sensor.solcast_pv_forecast_forecast_remaining_today_keep'), tuv_temp: has('sensor.temperature_tuv_tank_keep'), gas_power: has('sensor.gas_power_keep'), water_flow: has('sensor.watermeter_flow_rate_keep'), gas_meter: has('sensor.gasmeter_helper_keep')
       };
@@ -63,7 +159,7 @@
       return c;
     }
     setConfig(c) { this._cfg = Object.assign({}, DEF, c || {}); this._built = false; this._ovIdsC = null; this._ov = null; if (this._hass && this.isConnected) { clearInterval(this._ovT); this._ovT = null; setTimeout(() => this._ovStart()); } if (this._hass) this._render(); }
-    set hass(h) { const first = !this._hass; this._hass = h; this._render(); if (first) this._ovStart(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; this._render(); if (first) this._ovStart(); }
     connectedCallback() { if (this._hass) this._ovStart(); }
     disconnectedCallback() { clearInterval(this._ovT); this._ovT = null; }
     getCardSize() { return 7; }
@@ -104,33 +200,33 @@
       const pvs = [[c.pv1_power, c.pv1_name, COL.pv1, 'pv1'], [c.pv2_power, c.pv2_name, COL.pv2, 'pv2']].filter((x) => has(x[0]));
       if (has(c.solar_power) || pvs.length) tiles.push(`
         <div class="tile" data-id="${c.solar_power || pvs[0][0]}">
-          <div class="th" style="color:${COL.sol}">${svg(IC.sun)}<span>Solár</span></div>
+          <div class="th" style="color:${COL.sol}">${svg(IC.sun)}<span>${_('Solár')}</span></div>
           <div class="tv"><b id="sol_v"></b><small id="sol_u"></small></div>
           <div class="bar st" id="sol_bar">${pvs.length ? pvs.map((x) => `<i id="${x[3]}_b" title="${esc(x[1])}" style="background:${x[2]}"></i>`).join('') : `<i id="sol_b" style="background:${COL.sol}"></i>`}</div>
           <div class="td" id="sol_d"></div>
         </div>`);
       if (has(c.battery_soc) || has(c.battery_power)) tiles.push(`
         <div class="tile" data-id="${c.battery_soc || c.battery_power}">
-          <div class="th" id="bat_h">${svg(IC.bat)}<span>Batéria</span><b class="soc" id="soc_v"></b></div>
+          <div class="th" id="bat_h">${svg(IC.bat)}<span>${_('Batéria')}</span><b class="soc" id="soc_v"></b></div>
           ${has(c.battery_power) ? `<div class="tv"><b id="bat_v"></b><small id="bat_u"></small></div><div class="bar"><i id="bat_b"></i></div>` : ''}
           <div class="td" id="bat_d"></div>
         </div>`);
       if (has(c.grid_power)) tiles.push(`
         <div class="tile" data-id="${c.grid_power}">
-          <div class="th" id="grid_h">${svg(IC.grid)}<span>Sieť</span></div>
+          <div class="th" id="grid_h">${svg(IC.grid)}<span>${_('Sieť')}</span></div>
           <div class="tv"><b id="grid_v"></b><small id="grid_u"></small></div>
           <div class="bar"><i id="grid_b"></i></div>
           <div class="td" id="grid_d"></div>
         </div>`);
       const util = [];
-      if (has(c.gas_power)) util.push(`<div class="urow" data-id="${c.gas_power}"><span class="ui" style="color:${COL.gas}">${svg(IC.gas)}</span><span class="un">Plyn</span><b id="gas_v"></b><div class="bar sm"><i id="gas_b" style="background:${COL.gas}"></i></div><small class="um" id="gas_m"></small></div>`);
-      if (has(c.water_flow)) util.push(`<div class="urow" data-id="${c.water_flow}"><span class="ui" style="color:${COL.wat}">${svg(IC.wat)}</span><span class="un">Voda</span><b id="wat_v"></b><div class="bar sm"><i id="wat_b" style="background:${COL.wat}"></i></div><small class="um" id="wat_m"></small></div>`);
-      if (has(c.tuv_temp)) util.push(`<div class="urow" data-id="${c.tuv_temp}"><span class="ui" id="tuv_i">${svg(IC.tuv)}</span><span class="un">TUV</span><b id="tuv_v"></b><div class="bar sm"><i id="tuv_b"></i></div></div>`);
+      if (has(c.gas_power)) util.push(`<div class="urow" data-id="${c.gas_power}"><span class="ui" style="color:${COL.gas}">${svg(IC.gas)}</span><span class="un">${_('Plyn')}</span><b id="gas_v"></b><div class="bar sm"><i id="gas_b" style="background:${COL.gas}"></i></div><small class="um" id="gas_m"></small></div>`);
+      if (has(c.water_flow)) util.push(`<div class="urow" data-id="${c.water_flow}"><span class="ui" style="color:${COL.wat}">${svg(IC.wat)}</span><span class="un">${_('Voda')}</span><b id="wat_v"></b><div class="bar sm"><i id="wat_b" style="background:${COL.wat}"></i></div><small class="um" id="wat_m"></small></div>`);
+      if (has(c.tuv_temp)) util.push(`<div class="urow" data-id="${c.tuv_temp}"><span class="ui" id="tuv_i">${svg(IC.tuv)}</span><span class="un">${_('TUV')}</span><b id="tuv_v"></b><div class="bar sm"><i id="tuv_b"></i></div></div>`);
       if (util.length) tiles.push(`<div class="tile util">${util.join('')}</div>`);
 
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
         <div class="hero" data-id="${c.home_power || ''}">
-          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || 'Energia')}</span><span class="live"></span></div>
+          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || _('Energia'))}</span><span class="live"></span></div>
           <div class="hv"><b id="home_v"></b><small id="home_u"></small></div>
           <div class="mix" id="mix"><i class="ms" style="background:${COL.sol}"></i><i class="mb" style="background:${COL.bat}"></i><i class="mg" style="background:${COL.imp}"></i></div>
           <div class="leg" id="leg"></div>
@@ -163,7 +259,7 @@
         const el = r.querySelector(x[0]), f = x[1] / tot * scale;
         el.style.width = (f * 100).toFixed(2) + '%'; el.style.marginRight = f > 0.004 ? '2px' : '0';
       });
-      const leg = [['Solár', m.sol, COL.sol], ['Batéria', m.bat, COL.bat], ['Sieť', m.grid, COL.imp]].filter((x) => x[1] > tot * 0.005)
+      const leg = [[_('Solár'), m.sol, COL.sol], [_('Batéria'), m.bat, COL.bat], [_('Sieť'), m.grid, COL.imp]].filter((x) => x[1] > tot * 0.005)
         .map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${Math.round(x[1] / tot * 100)} %</b></span>`).join('') || '<span>–</span>';
       if ($('leg').__h !== leg) { $('leg').__h = leg; $('leg').innerHTML = leg; }
       // solár – jeden pruh poskladaný z PV1 + PV2
@@ -261,7 +357,7 @@
       if (mode === 'week') {
         const wd = n.getDay() || 7; a = new Date(Y, n.getMonth(), n.getDate() - wd + 1 + off * 7); b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 7);
         per = 'day'; N = 7; idx = (t) => Math.round((day0(t) - a) / 86400000);
-        lab = off === 0 ? 'Tento týždeň' : off === -1 ? 'Minulý týždeň' : dm(a) + '–' + dm(new Date(b - 86400000));
+        lab = off === 0 ? _('Tento týždeň') : off === -1 ? _('Minulý týždeň') : dm(a) + '–' + dm(new Date(b - 86400000));
       } else if (mode === 'month') {
         a = new Date(Y, n.getMonth() + off, 1); b = new Date(a.getFullYear(), a.getMonth() + 1, 1);
         per = 'day'; N = Math.round((b - a) / 86400000); idx = (t) => new Date(t).getDate() - 1;
@@ -272,7 +368,7 @@
       } else {
         a = new Date(Y, n.getMonth(), n.getDate() + off); b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 1);
         per = 'hour'; N = 24; idx = (t) => new Date(t).getHours();
-        lab = off === 0 ? 'Dnes' : off === -1 ? 'Včera' : dm(a);
+        lab = off === 0 ? _('Dnes') : off === -1 ? _('Včera') : dm(a);
       }
       return { a, b, per, N, idx, lab, mode, off };
     }
@@ -333,10 +429,10 @@
       const r = this.shadowRoot, t = this._today, on = this._cfg.today !== false && t && !t.empty && !t.err;
       const set = (id, h) => { const el = r && r.getElementById(id); if (el && el.__h !== h) { el.__h = h; el.innerHTML = h; } };
       const fc = this._st(this._cfg.solar_forecast), fv = fc ? parseFloat(fc.state) * (/^Wh$/i.test(fc.attributes.unit_of_measurement || '') ? 0.001 : 1) : NaN;
-      const rest = !isNaN(fv) && fv >= 0.05 ? ` · ešte <b>~${this._kwh(fv)}</b>` : '';
-      set('sol_d', on && t.has.sol ? `dnes <b>${this._kwh(t.solT)}</b>${rest} kWh` : rest ? `ešte <b>~${this._kwh(fv)}</b> kWh` : '');
-      set('bat_d', on && (t.has.bin || t.has.bout) ? `dnes <b>+${this._kwh(t.binT)}</b> / <b>−${this._kwh(t.boutT)}</b> kWh` : '');
-      set('grid_d', on && (t.has.gin || t.has.gout) ? `dnes ↓ <b>${this._kwh(t.ginT)}</b> · ↑ <b>${this._kwh(t.goutT)}</b> kWh` : '');
+      const rest = !isNaN(fv) && fv >= 0.05 ? ` · ${_('ešte')} <b>~${this._kwh(fv)}</b>` : '';
+      set('sol_d', on && t.has.sol ? `${_('dnes')} <b>${this._kwh(t.solT)}</b>${rest} kWh` : rest ? `${_('ešte')} <b>~${this._kwh(fv)}</b> kWh` : '');
+      set('bat_d', on && (t.has.bin || t.has.bout) ? `${_('dnes')} <b>+${this._kwh(t.binT)}</b> / <b>−${this._kwh(t.boutT)}</b> kWh` : '');
+      set('grid_d', on && (t.has.gin || t.has.gout) ? `${_('dnes')} ↓ <b>${this._kwh(t.ginT)}</b> · ↑ <b>${this._kwh(t.goutT)}</b> kWh` : '');
     }
     _kwh(v) { const a = Math.abs(v || 0); return this._nf(a, a < 100 ? 1 : 0); }
     _eur(v, sign) {
@@ -351,33 +447,33 @@
       const d = this._ov, open = this._ovOpen, mode = this._ovMode || 'day', R = COL.imp, G = COL.exp;
       const r = this._range(mode, this._ovOff || 0);   // popisky vždy podľa výberu, dáta ostávajú do načítania nových
       const sum = d && d.anyCost ? `<span class="sum" style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</span>` : '<span class="sum"></span>';
-      let h = `<div class="ovh" data-ovt="1"><span class="hi">${svg(IC.chart)}</span><span>Prehľad · ${esc(r.lab.toLowerCase())}</span>${sum}<span class="chev">${svg('M6 9l6 6 6-6')}</span></div>`;
+      let h = `<div class="ovh" data-ovt="1"><span class="hi">${svg(IC.chart)}</span><span>${_('Prehľad')} · ${esc(r.lab.toLowerCase())}</span>${sum}<span class="chev">${svg('M6 9l6 6 6-6')}</span></div>`;
       if (open) {
-        h += `<div class="bar2"><div class="seg">${[['day', 'Deň'], ['week', 'Týždeň'], ['month', 'Mesiac'], ['year', 'Rok']].map(([k, t]) => `<b data-mode="${k}" class="${k === mode ? 'on' : ''}">${t}</b>`).join('')}</div>
+        h += `<div class="bar2"><div class="seg">${[['day', _('Deň')], ['week', _('Týždeň')], ['month', _('Mesiac')], ['year', _('Rok')]].map(([k, t]) => `<b data-mode="${k}" class="${k === mode ? 'on' : ''}">${t}</b>`).join('')}</div>
           <div class="nav"><i data-nav="-1">‹</i><span>${esc(r.lab)}</span><i data-nav="1" class="${(this._ovOff || 0) >= 0 ? 'dis' : ''}">›</i></div></div>`;
-        if (!d) h += '<div class="emsg">Načítavam…</div>';
-        else if (d.err) h += '<div class="emsg">Dáta z Energy dashboardu sa nepodarilo načítať.</div>';
-        else if (d.empty) h += '<div class="emsg">V Energy dashboarde nie sú nastavené žiadne zdroje.</div>';
+        if (!d) h += '<div class="emsg">' + _('Načítavam…') + '</div>';
+        else if (d.err) h += '<div class="emsg">' + _('Dáta z Energy dashboardu sa nepodarilo načítať.') + '</div>';
+        else if (d.empty) h += '<div class="emsg">' + _('V Energy dashboarde nie sú nastavené žiadne zdroje.') + '</div>';
         else {
           const eu = (v, pos) => this._eur(pos ? v : -v, true), m = d.mix, mt = d.home || 1, pc = (v) => Math.round(v / mt * 100);
           // dom: spotreba, bilancia, odkiaľ išla spotreba
-          h += `<div class="box hero"><div class="hr"><div class="k"><b>${this._kwh(d.home)}</b><small>kWh</small><div>spotreba domu</div></div>
-            ${d.anyCost ? `<div class="e"><b style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</b><div>bilancia domu</div></div>` : ''}</div>
+          h += `<div class="box hero"><div class="hr"><div class="k"><b>${this._kwh(d.home)}</b><small>kWh</small><div>${_('spotreba domu')}</div></div>
+            ${d.anyCost ? `<div class="e"><b style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</b><div>${_('bilancia domu')}</div></div>` : ''}</div>
             ${d.home > 0.01 ? `<div class="mix2">${[[m.sol, COL.sol], [m.bat, COL.bat], [m.grid, R]].filter((x) => x[0] > mt * 0.005).map((x) => `<i style="flex:${x[0].toFixed(3)};background:${x[1]}"></i>`).join('')}</div>
-            <div class="lg">${[['solár', m.sol, COL.sol], ['batéria', m.bat, COL.bat], ['sieť', m.grid, R]].filter((x) => x[1] > mt * 0.005).map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${pc(x[1])} %</b></span>`).join('')}</div>` : ''}</div>`;
+            <div class="lg">${[[_('solár'), m.sol, COL.sol], [_('batéria'), m.bat, COL.bat], [_('sieť'), m.grid, R]].filter((x) => x[1] > mt * 0.005).map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${pc(x[1])} %</b></span>`).join('')}</div>` : ''}</div>`;
           // zoznam položiek
           const row = (ic, col, name, sub, val, unit, price, pcol) => `<div class="rw"><span class="ri" style="color:${col}">${svg(ic)}</span><span class="rn"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span>
             <span class="rv"><b>${val}<small>${unit}</small></b>${price ? `<div style="color:${pcol}">${price}</div>` : ''}</span></div>`;
           const rows = [];
           if (d.has.sol) {
             const pv = [d.pv1 != null ? `${esc(this._cfg.pv1_name)} ${this._kwh(d.pv1)}` : '', d.pv2 != null ? `${esc(this._cfg.pv2_name)} ${this._kwh(d.pv2)}` : ''].filter(Boolean).join(' · ');
-            rows.push(row(IC.sun, COL.sol, 'Výroba FVE', pv, this._kwh(d.solT), 'kWh'));
+            rows.push(row(IC.sun, COL.sol, _('Výroba FVE'), pv, this._kwh(d.solT), 'kWh'));
           }
-          if (d.has.gout) rows.push(row(IC.up, G, 'Predaj do siete', '', this._kwh(d.goutT), 'kWh', d.hasCost.cout ? eu(d.cout, 1) : '', G));
-          if (d.has.gin) rows.push(row(IC.down, R, 'Nákup zo siete', '', this._kwh(d.ginT), 'kWh', d.hasCost.cin ? eu(d.cin, 0) : '', R));
-          if (d.has.bin || d.has.bout) rows.push(row(IC.bat, COL.bat, 'Batéria', '', `+${this._kwh(d.binT)}<span class="sl">/</span>−${this._kwh(d.boutT)}`, 'kWh'));
-          if (d.has.gas) { const u = d.gasU || 'kWh'; rows.push(row(IC.gas, COL.gas, 'Plyn', '', u === 'kWh' ? this._kwh(d.gasT) : this._nf(d.gasT, d.gasT < 100 ? 2 : 0), esc(u), d.hasCost.cgas ? eu(d.cgas, 0) : '', R)); }
-          if (d.has.wat) rows.push(row(IC.wat, COL.wat, 'Voda', `${this._nf(d.watT / 1000, 2)} m³`, this._nf(d.watT, 0), 'l', d.hasCost.cwat ? eu(d.cwat, 0) : '', R));
+          if (d.has.gout) rows.push(row(IC.up, G, _('Predaj do siete'), '', this._kwh(d.goutT), 'kWh', d.hasCost.cout ? eu(d.cout, 1) : '', G));
+          if (d.has.gin) rows.push(row(IC.down, R, _('Nákup zo siete'), '', this._kwh(d.ginT), 'kWh', d.hasCost.cin ? eu(d.cin, 0) : '', R));
+          if (d.has.bin || d.has.bout) rows.push(row(IC.bat, COL.bat, _('Batéria'), '', `+${this._kwh(d.binT)}<span class="sl">/</span>−${this._kwh(d.boutT)}`, 'kWh'));
+          if (d.has.gas) { const u = d.gasU || 'kWh'; rows.push(row(IC.gas, COL.gas, _('Plyn'), '', u === 'kWh' ? this._kwh(d.gasT) : this._nf(d.gasT, d.gasT < 100 ? 2 : 0), esc(u), d.hasCost.cgas ? eu(d.cgas, 0) : '', R)); }
+          if (d.has.wat) rows.push(row(IC.wat, COL.wat, _('Voda'), `${this._nf(d.watT / 1000, 2)} m³`, this._nf(d.watT, 0), 'l', d.hasCost.cwat ? eu(d.cwat, 0) : '', R));
           if (rows.length) h += `<div class="box lst">${rows.join('')}</div>`;
         }
       }
@@ -498,56 +594,56 @@
   /* ================= Editor ================= */
   class HomeEnergyCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = Object.assign({}, DEF, this._cfg); }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
         const ent = (n) => ({ name: n, selector: { entity: { domain: ['sensor', 'input_number', 'number'] } } });   // bez filtra device_class – nie každý senzor ho má
         const num = (n, unit, max, step) => ({ name: n, selector: { number: { min: 0, max: max || 100, step: step || 0.5, mode: 'box', unit_of_measurement: unit } } });
         const st = (n) => ({ name: n, selector: { statistic: {} } });
-        const stats = (list) => ({ type: 'expandable', name: '', title: 'Štatistiky pre Prehľad (prázdne = z Energy dashboardu)', icon: 'mdi:chart-box-outline', schema: list.map(st) });
+        const stats = (list) => ({ type: 'expandable', name: '', title: _('Štatistiky pre Prehľad (prázdne = z Energy dashboardu)'), icon: 'mdi:chart-box-outline', schema: list.map(st) });
         const sec = (title, icon, schema, expanded) => ({ type: 'expandable', name: '', title, icon, expanded: !!expanded, schema });
         f.schema = [
-          sec('Všeobecné', 'mdi:home-lightning-bolt-outline', [
+          sec(_('Všeobecné'), 'mdi:home-lightning-bolt-outline', [
             { name: 'title', selector: { text: {} } }, ent('home_power', 'power'), num('home_max', 'kW'),
             { type: 'grid', name: '', schema: [{ name: 'overview', selector: { boolean: {} } }, { name: 'today', selector: { boolean: {} } }] }], true),
-          sec('Solár', 'mdi:solar-power-variant', [ent('solar_power', 'power'), num('solar_max', 'kW'),
+          sec(_('Solár'), 'mdi:solar-power-variant', [ent('solar_power', 'power'), num('solar_max', 'kW'),
             { type: 'grid', name: '', schema: [ent('pv1_power', 'power'), { name: 'pv1_name', selector: { text: {} } }, ent('pv2_power', 'power'), { name: 'pv2_name', selector: { text: {} } }] },
             ent('solar_forecast', 'energy'), stats(['stat_solar', 'stat_pv1', 'stat_pv2'])]),
-          sec('Batéria', 'mdi:home-battery-outline', [ent('battery_soc', 'battery'), ent('battery_power', 'power'), { name: 'battery_invert', selector: { boolean: {} } }, num('battery_max', 'kW'),
+          sec(_('Batéria'), 'mdi:home-battery-outline', [ent('battery_soc', 'battery'), ent('battery_power', 'power'), { name: 'battery_invert', selector: { boolean: {} } }, num('battery_max', 'kW'),
             stats(['stat_battery_in', 'stat_battery_out'])]),
-          sec('Sieť', 'mdi:transmission-tower', [ent('grid_power', 'power'), { name: 'grid_invert', selector: { boolean: {} } }, num('grid_max', 'kW'),
+          sec(_('Sieť'), 'mdi:transmission-tower', [ent('grid_power', 'power'), { name: 'grid_invert', selector: { boolean: {} } }, num('grid_max', 'kW'),
             stats(['stat_grid_in', 'cost_grid_in', 'stat_grid_out', 'cost_grid_out'])]),
-          sec('Plyn', 'mdi:fire', [ent('gas_power'), num('gas_max', '', 500, 1), ent('gas_meter'), stats(['stat_gas', 'cost_gas'])]),
-          sec('Voda', 'mdi:water-outline', [ent('water_flow'), num('water_max', '', 1000, 1), ent('water_meter'), stats(['stat_water', 'cost_water'])]),
-          sec('Teplá úžitková voda', 'mdi:water-thermometer-outline', [ent('tuv_temp', 'temperature'),
+          sec(_('Plyn'), 'mdi:fire', [ent('gas_power'), num('gas_max', '', 500, 1), ent('gas_meter'), stats(['stat_gas', 'cost_gas'])]),
+          sec(_('Voda'), 'mdi:water-outline', [ent('water_flow'), num('water_max', '', 1000, 1), ent('water_meter'), stats(['stat_water', 'cost_water'])]),
+          sec(_('Teplá úžitková voda'), 'mdi:water-thermometer-outline', [ent('tuv_temp', 'temperature'),
             { type: 'grid', name: '', schema: [num('tuv_min', '°C', 100, 1), num('tuv_max', '°C', 100, 1)] }])
         ];
         const L = {
-          title: 'Nadpis karty', home_power: 'Spotreba domu – výkon', home_max: 'Mierka pruhu spotreby', overview: 'Prehľad (deň / týždeň / mesiac / rok)', today: 'Dnešné súčty v dlaždiciach',
-          solar_power: 'Výkon FVE spolu', solar_max: 'Mierka FVE', pv1_power: 'PV1 – výkon', pv1_name: 'PV1 – názov', pv2_power: 'PV2 – výkon', pv2_name: 'PV2 – názov', solar_forecast: 'Predpoveď – zostávajúca výroba dnes',
-          battery_soc: 'Nabitie (SOC %)', battery_power: 'Výkon batérie', battery_invert: 'Otočiť znamienko výkonu', battery_max: 'Mierka výkonu batérie',
-          grid_power: 'Výkon siete', grid_invert: 'Otočiť znamienko výkonu', grid_max: 'Mierka siete',
-          gas_power: 'Plyn – okamžitý výkon / prietok', gas_max: 'Mierka plynu', gas_meter: 'Stav plynomeru',
-          water_flow: 'Voda – prietok', water_max: 'Mierka vody', water_meter: 'Stav vodomeru',
-          tuv_temp: 'Teplota v zásobníku', tuv_min: 'Studená (modrá)', tuv_max: 'Horúca (červená)',
-          stat_solar: 'Výroba FVE spolu (kWh)', stat_pv1: 'Výroba PV1 (kWh)', stat_pv2: 'Výroba PV2 (kWh)', stat_battery_in: 'Energia do batérie (kWh)', stat_battery_out: 'Energia z batérie (kWh)',
-          stat_grid_in: 'Odber zo siete (kWh)', cost_grid_in: 'Náklad na odber', stat_grid_out: 'Dodávka do siete (kWh)', cost_grid_out: 'Príjem z dodávky',
-          stat_gas: 'Spotreba plynu', cost_gas: 'Náklad na plyn', stat_water: 'Spotreba vody', cost_water: 'Náklad na vodu' };
+          title: _('Nadpis karty'), home_power: _('Spotreba domu – výkon'), home_max: _('Mierka pruhu spotreby'), overview: _('Prehľad (deň / týždeň / mesiac / rok)'), today: _('Dnešné súčty v dlaždiciach'),
+          solar_power: _('Výkon FVE spolu'), solar_max: _('Mierka FVE'), pv1_power: _('PV1 – výkon'), pv1_name: _('PV1 – názov'), pv2_power: _('PV2 – výkon'), pv2_name: _('PV2 – názov'), solar_forecast: _('Predpoveď – zostávajúca výroba dnes'),
+          battery_soc: _('Nabitie (SOC %)'), battery_power: _('Výkon batérie'), battery_invert: _('Otočiť znamienko výkonu'), battery_max: _('Mierka výkonu batérie'),
+          grid_power: _('Výkon siete'), grid_invert: _('Otočiť znamienko výkonu'), grid_max: _('Mierka siete'),
+          gas_power: _('Plyn – okamžitý výkon / prietok'), gas_max: _('Mierka plynu'), gas_meter: _('Stav plynomeru'),
+          water_flow: _('Voda – prietok'), water_max: _('Mierka vody'), water_meter: _('Stav vodomeru'),
+          tuv_temp: _('Teplota v zásobníku'), tuv_min: _('Studená (modrá)'), tuv_max: _('Horúca (červená)'),
+          stat_solar: _('Výroba FVE spolu (kWh)'), stat_pv1: _('Výroba PV1 (kWh)'), stat_pv2: _('Výroba PV2 (kWh)'), stat_battery_in: _('Energia do batérie (kWh)'), stat_battery_out: _('Energia z batérie (kWh)'),
+          stat_grid_in: _('Odber zo siete (kWh)'), cost_grid_in: _('Náklad na odber'), stat_grid_out: _('Dodávka do siete (kWh)'), cost_grid_out: _('Príjem z dodávky'),
+          stat_gas: _('Spotreba plynu'), cost_gas: _('Náklad na plyn'), stat_water: _('Spotreba vody'), cost_water: _('Náklad na vodu') };
         const H = {
-          home_power: 'W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.',
-          home_max: 'Pri tejto hodnote je pruh plný.',
-          overview: 'Rozbaľovací prehľad dole, dáta z Energy dashboardu.',
-          today: 'Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.',
-          solar_power: 'Ak chýba, sčíta sa PV1 + PV2.',
-          pv1_power: 'Voliteľné – pruh solára sa rozdelí na dve farby.',
-          solar_forecast: 'Napr. Solcast „forecast remaining today“ (kWh).',
-          battery_power: 'Karta počíta + = vybíjanie, − = nabíjanie.',
-          battery_invert: 'Zapni, ak senzor ukazuje + pri nabíjaní.',
-          grid_power: 'Karta počíta + = odber zo siete, − = predaj.',
-          grid_invert: 'Zapni, ak senzor ukazuje + pri predaji.',
-          gas_meter: 'Voliteľné – zobrazí sa pod pruhom plynu.', water_meter: 'Voliteľné – zobrazí sa pod pruhom vody.',
-          tuv_temp: 'Voliteľné – farba pruhu podľa teploty.' };
+          home_power: _('W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.'),
+          home_max: _('Pri tejto hodnote je pruh plný.'),
+          overview: _('Rozbaľovací prehľad dole, dáta z Energy dashboardu.'),
+          today: _('Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.'),
+          solar_power: _('Ak chýba, sčíta sa PV1 + PV2.'),
+          pv1_power: _('Voliteľné – pruh solára sa rozdelí na dve farby.'),
+          solar_forecast: _('Napr. Solcast „forecast remaining today“ (kWh).'),
+          battery_power: _('Karta počíta + = vybíjanie, − = nabíjanie.'),
+          battery_invert: _('Zapni, ak senzor ukazuje + pri nabíjaní.'),
+          grid_power: _('Karta počíta + = odber zo siete, − = predaj.'),
+          grid_invert: _('Zapni, ak senzor ukazuje + pri predaji.'),
+          gas_meter: _('Voliteľné – zobrazí sa pod pruhom plynu.'), water_meter: _('Voliteľné – zobrazí sa pod pruhom vody.'),
+          tuv_temp: _('Voliteľné – farba pruhu podľa teploty.') };
         f.computeLabel = (x) => L[x.name] || x.title || x.name;
         f.computeHelper = (x) => H[x.name];
         f.addEventListener('value-changed', (e) => {
@@ -567,7 +663,7 @@
   if (!customElements.get('igy-energy-card')) customElements.define('igy-energy-card', HomeEnergyCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-energy-card'))
-    window.customCards.push({ type: 'igy-energy-card', name: 'Igy Energy Card', description: 'Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda', preview: true });
+    window.customCards.push({ type: 'igy-energy-card', name: 'Igy Energy Card', description: _('Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda'), preview: true });
   console.info('%c IGY-ENERGY-CARD %c ' + VERSION + ' ', 'background:#30d158;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -589,11 +685,41 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Zadaj entitu počasia (entity: weather.…)": "Set a weather entity (entity: weather.…)",
+    "Teraz": "Now",
+    "Zajtra": "Tomorrow",
+    "východ": "sunrise",
+    "západ": "sunset",
+    "Dnes": "Today",
+    "Počasie": "Weather",
+    "Predpoveď výroby FVE (Solcast)": "Solar production forecast (Solcast)",
+    "Entita počasia": "Weather entity",
+    "Miesto (voliteľné)": "Location (optional)",
+    "Vonkajší teplomer (voliteľné)": "Outdoor thermometer (optional)",
+    "Predpoveď na dnes": "Forecast for today",
+    "Zostáva dnes": "Remaining today",
+    "Predpoveď na ďalšie dni (zajtra, +2, +3)": "Forecast for the next days (tomorrow, +2, +3)",
+    "Skutočná výroba – výkon (voliteľné)": "Actual production – power (optional)",
+    "Zbaliteľná": "Collapsible",
+    "Na začiatku zbalená": "Start collapsed",
+    "Plný prstenec (kWh za hodinu)": "Full ring (kWh per hour)",
+    "Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.": "E.g. Met.no or Open-Meteo – must provide hourly and daily forecasts.",
+    "Zobrazí sa pod stavom počasia. Prázdne = názov entity.": "Shown in the header. Empty = entity name.",
+    "Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.": "If you have one, the card shows its temperature and today’s history instead of forecast data.",
+    "Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.": "Solcast “forecast today” – hourly values come from the detailedForecast attribute.",
+    "V poradí zajtra, pozajtra, popozajtra.": "In order: tomorrow, day after, the day after that.",
+    "Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.": "The past part of the day is drawn from actual production.",
+    "Zbalená ukazuje len hlavičku a graf dňa.": "Collapsed shows only the header and the hourly strip.",
+    "Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).": "Weather with an hourly strip and solar production forecast (Solcast)."
+  };
+
   const VERSION = '1.5.0';
   const COL = { sol: '#ff9f0a', rain: '#64b5ff' };
-  const COND = { 'clear-night': 'Jasno', cloudy: 'Zamračené', exceptional: 'Výnimočné počasie', fog: 'Hmla', hail: 'Krupobitie', lightning: 'Búrka',
-    'lightning-rainy': 'Búrka s dažďom', partlycloudy: 'Polojasno', pouring: 'Lejak', rainy: 'Dážď', snowy: 'Sneženie', 'snowy-rainy': 'Dážď so snehom',
-    sunny: 'Slnečno', windy: 'Veterno', 'windy-variant': 'Veterno a oblačno' };
   const DIRS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   const ui = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
@@ -714,7 +840,7 @@
       return c;
     }
     setConfig(c) {
-      if (!c || !c.entity) throw new Error('Zadaj entitu počasia (entity: weather.…)');
+      if (!c || !c.entity) throw new Error(_('Zadaj entitu počasia (entity: weather.…)'));
       const old = this._cfg;
       this._cfg = Object.assign({ collapsible: true }, c);
       this._built = false; this._col = null;
@@ -722,7 +848,7 @@
       if (old && (old.solar_power !== c.solar_power || old.temperature_sensor !== c.temperature_sensor)) this._hist = null;
       if (this._hass) { this._render(); this._start(); }
     }
-    set hass(h) { const first = !this._hass; this._hass = h; if (!this._cfg) return; this._render(); if (first) this._start(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; if (!this._cfg) return; this._render(); if (first) this._start(); }
     connectedCallback() { if (this._hass && this._cfg) { this._start(); requestAnimationFrame(() => this._toNow(false)); } }
     disconnectedCallback() { clearTimeout(this._backT); this._unsub(); clearInterval(this._hT); this._hT = null; }
     getCardSize() { return this._col ? 4 : 8; }
@@ -839,17 +965,17 @@
         if (!past && f) { const pp = f.f.precipitation_probability, mm = f.f.precipitation; rain = pp != null ? (pp >= 20 ? pp + ' %' : '') : (mm >= 0.1 ? this._nf(mm, 1) + ' mm' : ''); }
         const pv = past && pvA[t] != null ? pvA[t] : pvF[t] != null ? pvF[t] : (past ? pvA[t] : null);
         const dm = new Date(t);
-        cols.push({ t, cur, past, temp, cond, rain, pv, real: past && pvA[t] != null, lab: cur ? 'Teraz' : dm.getHours() === 0 && t > t0 ? 'Zajtra' : String(dm.getHours()).padStart(2, '0') });
+        cols.push({ t, cur, past, temp, cond, rain, pv, real: past && pvA[t] != null, day: !cur && dm.getHours() === 0 && t > t0, lab: cur ? _('Teraz') : dm.getHours() === 0 && t > t0 ? _('Zajtra') : String(dm.getHours()).padStart(2, '0') });
         // východ / západ slnka v tejto hodine
         if (sun) [[sun.rise, 'rise'], [sun.set, 'set'], [sun.rise && sun.rise + 86400000, 'rise'], [sun.set && sun.set + 86400000, 'set']].forEach(([st, k]) => {
           if (st && st >= t && st < t + HR && st <= tEnd) cols.push({ sun: k, t: st, past: st < now, lab: this._hm(st) });
         });
       }
       const html = cols.map((x) => {
-        if (x.sun) return `<div class="hc sun${x.past ? ' past' : ''}"><div class="h">${x.lab}</div><i>${x.sun === 'rise' ? SUNRISE : SUNSET}</i><div class="t sm">${x.sun === 'rise' ? 'východ' : 'západ'}</div><div class="r"></div></div>`;
+        if (x.sun) return `<div class="hc sun${x.past ? ' past' : ''}"><div class="h">${x.lab}</div><i>${x.sun === 'rise' ? SUNRISE : SUNSET}</i><div class="t sm">${x.sun === 'rise' ? _('východ') : _('západ')}</div><div class="r"></div></div>`;
         // prstenec: plný kruh = ring_max kWh za hodinu (predvolene 9)
         const rg = x.pv != null && x.pv >= 0.05 ? Math.max(3, Math.min(100, x.pv / (+this._cfg.ring_max || 9) * 100)) : 0;
-        return `<div class="hc${x.cur ? ' now' : ''}${x.past ? ' past' : ''}${x.lab === 'Zajtra' ? ' day' : ''}"${x.cur ? ' id="nowc"' : ''}>
+        return `<div class="hc${x.cur ? ' now' : ''}${x.past ? ' past' : ''}${x.day ? ' day' : ''}"${x.cur ? ' id="nowc"' : ''}>
           <div class="h">${x.lab}</div><i>${x.cond ? wicon(x.cond, this._isNight(x.t + 1800000, sun)) : ''}${rg ? `<svg class="ring" viewBox="0 0 40 40"><circle class="rt" cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="18" pathLength="100" stroke-dasharray="${rg.toFixed(1)} 100"/></svg><em class="pk">${this._nf(x.pv, x.pv < 10 ? 1 : 0)}</em>` : ''}</i>
           <div class="t">${x.temp != null ? Math.round(x.temp) + '°' : '–'}</div><div class="r">${x.rain}</div></div>`;
       }).join('');
@@ -931,7 +1057,7 @@
       const days = rows.map((x, j) => {
         const isT = today1 && j === 0, i = today1 ? j - 1 : j;
         const f = x.f, d = new Date(x.t), lo2 = f.templow != null ? f.templow : f.temperature, hi2 = f.temperature, l = (lo2 - gmin) / gr * 100, w = Math.max(3, (hi2 - lo2) / gr * 100);
-        const nm = isT ? 'Dnes' : ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'][d.getDay()];
+        const nm = isT ? _('Dnes') : (LANG === 'sk' ? ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])[d.getDay()];
         const pr = f.precipitation_probability != null ? (f.precipitation_probability >= 20 ? f.precipitation_probability + ' %' : '') : (f.precipitation >= 0.5 ? this._nf(f.precipitation, f.precipitation < 10 ? 1 : 0) + ' mm' : '');
         const pv = isT ? pvT : dkwh[i], pid = isT ? c.solar_today : c.solar_days && c.solar_days[i];
         const dot = isT && curT != null ? `<em style="left:${((curT - gmin) / gr * 100).toFixed(1)}%"></em>` : '';
@@ -940,7 +1066,7 @@
           <span class="pv"${pid ? ` data-more="${pid}"` : ''}>${pv != null ? `${this._nf(pv, 1)}<small>kWh</small><u><i style="width:${Math.min(100, pv / dmax * 100).toFixed(0)}%"></i></u>` : ''}</span></div>`;
       }).join('');
       const html = `
-        <div class="top"><span class="ic">${wicon(ws.state, night)}</span><span class="ttl">${esc(c.title || 'Počasie')}</span>${c.collapsible !== false ? `<span class="chev">${ui(UI.chev)}</span>` : ''}</div>
+        <div class="top"><span class="ic">${wicon(ws.state, night)}</span><span class="ttl">${esc(c.title || _('Počasie'))}</span>${c.collapsible !== false ? `<span class="chev">${ui(UI.chev)}</span>` : ''}</div>
         <div class="box gb">
           <div class="sw" id="sw"><div class="strip">${ch.html}</div></div>
         </div>
@@ -964,7 +1090,7 @@
   class HomeWeatherCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
     _data() { const c = this._cfg || {}; return Object.assign({ collapsible: true, collapsed: true }, c); }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
@@ -973,16 +1099,16 @@
           { name: 'entity', required: true, selector: { entity: { domain: 'weather' } } },
           { name: 'title', selector: { text: {} } },
           sens('temperature_sensor'),
-          { type: 'expandable', name: '', title: 'Predpoveď výroby FVE (Solcast)', icon: 'mdi:solar-power-variant', expanded: true, schema: [
-            sens('solar_today'), sens('solar_remaining'), { name: 'solar_days', selector: { entity: { domain: 'sensor', multiple: true } } }, sens('solar_power')] },
+          { type: 'expandable', name: '', title: _('Predpoveď výroby FVE (Solcast)'), icon: 'mdi:solar-power-variant', expanded: true, schema: [
+            sens('solar_today'), sens('solar_remaining'), { name: 'solar_days', selector: { entity: { domain: 'sensor', multiple: true } } }, sens('solar_power'), { name: 'ring_max', selector: { number: { min: 1, max: 50, step: 0.5, mode: 'box', unit_of_measurement: 'kWh' } } }] },
           { type: 'grid', name: '', schema: [{ name: 'collapsible', selector: { boolean: {} } }, { name: 'collapsed', selector: { boolean: {} } }] }
         ];
-        const L = { entity: 'Entita počasia', title: 'Miesto (voliteľné)', temperature_sensor: 'Vonkajší teplomer (voliteľné)', solar_today: 'Predpoveď na dnes', solar_remaining: 'Zostáva dnes',
-          solar_days: 'Predpoveď na ďalšie dni (zajtra, +2, +3)', solar_power: 'Skutočná výroba – výkon (voliteľné)', collapsible: 'Zbaliteľná', collapsed: 'Na začiatku zbalená' };
-        const Hh = { entity: 'Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.', title: 'Zobrazí sa pod stavom počasia. Prázdne = názov entity.',
-          temperature_sensor: 'Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.',
-          solar_today: 'Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.', solar_days: 'V poradí zajtra, pozajtra, popozajtra.',
-          solar_power: 'Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.', collapsed: 'Zbalená ukazuje len hlavičku a graf dňa.' };
+        const L = { entity: _('Entita počasia'), title: _('Miesto (voliteľné)'), temperature_sensor: _('Vonkajší teplomer (voliteľné)'), solar_today: _('Predpoveď na dnes'), solar_remaining: _('Zostáva dnes'),
+          solar_days: _('Predpoveď na ďalšie dni (zajtra, +2, +3)'), solar_power: _('Skutočná výroba – výkon (voliteľné)'), collapsible: _('Zbaliteľná'), collapsed: _('Na začiatku zbalená'), ring_max: _('Plný prstenec (kWh za hodinu)') };
+        const Hh = { entity: _('Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.'), title: _('Zobrazí sa pod stavom počasia. Prázdne = názov entity.'),
+          temperature_sensor: _('Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.'),
+          solar_today: _('Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.'), solar_days: _('V poradí zajtra, pozajtra, popozajtra.'),
+          solar_power: _('Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.'), collapsed: _('Zbalená ukazuje len hlavičku a graf dňa.') };
         f.computeLabel = (x) => L[x.name] || x.title || x.name;
         f.computeHelper = (x) => Hh[x.name];
         f.addEventListener('value-changed', (e) => {
@@ -1001,7 +1127,7 @@
   if (!customElements.get('igy-weather-card')) customElements.define('igy-weather-card', HomeWeatherCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-weather-card'))
-    window.customCards.push({ type: 'igy-weather-card', name: 'Igy Weather Card', description: 'Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).', preview: true });
+    window.customCards.push({ type: 'igy-weather-card', name: 'Igy Weather Card', description: _('Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).'), preview: true });
   console.info('%c IGY-WEATHER-CARD %c ' + VERSION + ' ', 'background:#64b5ff;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -1026,6 +1152,36 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Pridaj termostaty v nastaveniach karty.": "Add thermostats in the card settings.",
+    "Kúrenie": "Heating",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "Kúri dlho a teplota nerastie": "Heating for a long time and the temperature is not rising",
+    "entita nenájdená": "entity not found",
+    "Otvorené okno": "Window open",
+    "vypnuté": "off",
+    "kúri dlho, teplota nerastie": "heating long, temperature not rising",
+    "kúri {0}": "heating {0}",
+    "Termostaty": "Thermostats",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.": "Drag by ⠿ to reorder. Tap a thermostat to set a custom name and a window sensor.",
+    "+ Pridať termostat": "+ Add thermostat",
+    "Nadpis karty (prázdny = bez hlavičky)": "Card title (empty = no header)",
+    "Čiara požiadavky na kúrenie (dole na karte)": "Heating demand line (bottom of the card)",
+    "Čiara ukazuje posledných": "Line shows the last",
+    "Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)": "Warn when heating longer than this without the temperature rising (0 = off)",
+    "Upraviť": "Edit",
+    "Odstrániť": "Remove",
+    "Termostat": "Thermostat",
+    "Vlastný názov (prázdny = názov z HA)": "Custom name (empty = name from HA)",
+    "Senzor okna – pri otvorení sa termostat zablokuje": "Window sensor – the thermostat is blocked while it is open",
+    "Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)": "Take heating demand from (empty = when the thermostat is heating)",
+    "Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.": "Selected thermostats in one card, drag to set the temperature."
+  };
+
   const VERSION = '4.7.7';
   const COL = { heat: '#ff9f0a', cool: '#0a84ff', win: '#ff6961', warn: '#ffd60a' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -1113,17 +1269,17 @@
     static getConfigElement() { return document.createElement('igy-thermostat-card-editor'); }
     static getStubConfig(hass) {
       const ids = hass ? Object.keys(hass.states).filter((id) => id.startsWith('climate.')).slice(0, 4) : [];
-      return { title: 'Kúrenie', entities: ids.map((id) => ({ entity: id })) };
+      return { title: _('Kúrenie'), entities: ids.map((id) => ({ entity: id })) };
     }
 
     setConfig(config) {
-      if (!config) throw new Error('Chybná konfigurácia.');
+      if (!config) throw new Error(_('Chybná konfigurácia.'));
       this._config = normalize(config);
       this._ov = {}; this._config.entities.forEach((e) => { this._ov[e.entity] = e; });
       this._sig = ''; this._card = null; this._hist = {}; this._histKey = '';
       if (this._hass) { this._render(); this._histStart(); }
     }
-    set hass(hass) { const first = !this._hass; this._hass = hass; this._render(); if (first) this._histStart(); }
+    set hass(hass) { setLang(hass); const first = !this._hass; this._hass = hass; this._render(); if (first) this._histStart(); }
     connectedCallback() { if (this._hass) this._histStart(); }
     disconnectedCallback() { clearInterval(this._histT); this._histT = null; }
     _hours() { const h = this._config.hours; return h == null ? 24 : Math.max(1, Number(h) || 24); }
@@ -1147,7 +1303,7 @@
         const t = this._config.title;
         this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
           ${t ? `<div class="hl tap" id="hl"><ha-icon icon="mdi:thermostat"></ha-icon><span>${esc(t)}</span><span class="cnt" id="cnt"></span><ha-icon class="chev" icon="mdi:chevron-down"></ha-icon></div>` : ''}
-          <div class="list" id="list"></div><div class="empty" id="empty">Pridaj termostaty v nastaveniach karty.</div>
+          <div class="list" id="list"></div><div class="empty" id="empty">${_('Pridaj termostaty v nastaveniach karty.')}</div>
           ${this._rtOn() ? '<div class="dm" id="dm"></div>' : ''}
           </ha-card>`;
         this._card = this.shadowRoot.querySelector('ha-card');
@@ -1169,7 +1325,7 @@
             <div class="glow"></div><div class="glow2"></div>
             <div class="top">
               <span class="ic"><ha-icon></ha-icon></span>
-              <span class="nm"><b><span class="n"></span><i class="wd" title="Kúri dlho a teplota nerastie"></i></b><span class="cur"></span></span>
+              <span class="nm"><b><span class="n"></span><i class="wd" title="${_('Kúri dlho a teplota nerastie')}"></i></b><span class="cur"></span></span>
               <span class="ct"><span class="v"></span><small>°</small></span>
               <span class="tg"><span class="ok">✓</span><em><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></em><b></b><small>°</small></span>
             </div>
@@ -1290,7 +1446,7 @@
         const s = this._hass.states[id], row = [...this._list.children].find((r) => r.dataset.id === id);
         if (!row) return;
         row.classList.toggle('na', !s);
-        if (!s) { row.querySelector('.nm .n').textContent = (this._ov[id] && this._ov[id].name) || id; row.querySelector('.cur').textContent = 'entita nenájdená'; return; }
+        if (!s) { row.querySelector('.nm .n').textContent = (this._ov[id] && this._ov[id].name) || id; row.querySelector('.cur').textContent = _('entita nenájdená'); return; }
         const a = s.attributes, ov = this._ov[id] || {};
         const act = a.hvac_action || '', off = s.state === 'off' || act === 'off';
         const mode = act === 'heating' || act === 'preheating' ? 'heat' : act === 'cooling' ? 'cool' : off ? 'off' : '';
@@ -1309,9 +1465,9 @@
         // aktuálna teplota vpravo, druhý riadok len keď je čo povedať
         const cv = row.querySelector('.ct .v'); if (cv.textContent !== c) cv.textContent = c;
         let sub = '';
-        if (winOpen) sub = 'Otvorené okno · ' + this._ago(w.last_changed);
-        else if (mode === 'off') sub = 'vypnuté';
-        else if (warn) sub = 'kúri dlho, teplota nerastie';
+        if (winOpen) sub = _('Otvorené okno') + ' · ' + this._ago(w.last_changed);
+        else if (mode === 'off') sub = _('vypnuté');
+        else if (warn) sub = _('kúri dlho, teplota nerastie');
         const ce = row.querySelector('.cur'); if (ce.textContent !== sub) ce.textContent = sub;
         // potvrdenie zmeny z HA
         if (row._pend != null && a.temperature === row._pend) {
@@ -1325,7 +1481,7 @@
       });
       this._drawRt(ids);
       const cnt = this.shadowRoot.getElementById('cnt');
-      if (cnt) cnt.textContent = heating ? `kúri ${heating}` : '';
+      if (cnt) cnt.textContent = heating ? _('kúri {0}', heating) : '';
     }
   }
 
@@ -1367,7 +1523,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) {
+    set hass(h) { setLang(h);
       const first = !this._hass; this._hass = h;
       if (first && this._cfg) this._build();
       this.querySelectorAll('ha-form, ha-entity-picker').forEach((f) => { f.hass = h; });
@@ -1382,10 +1538,10 @@
       const open = this._open || new Set();
       this.innerHTML = `<style>${EDCSS}</style><div class="ed">
         <div id="top"></div>
-        <div class="sec">Termostaty</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.</div>
+        <div class="sec">${_('Termostaty')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.')}</div>
         <div class="items" id="items"></div>
-        <div class="add"><div class="lbl">+ Pridať termostat</div><div id="addp"></div></div>
+        <div class="add"><div class="lbl">${_('+ Pridať termostat')}</div><div id="addp"></div></div>
       </div>`;
       // nadpis
       const top = document.createElement('ha-form');
@@ -1393,7 +1549,7 @@
       top.schema = [{ name: 'title', selector: { text: {} } }, { name: 'runtime', selector: { boolean: {} } },
         { name: 'hours', selector: { number: { min: 1, max: 168, step: 1, mode: 'box', unit_of_measurement: 'h' } } },
         { name: 'warn_hours', selector: { number: { min: 0, max: 24, step: 0.5, mode: 'box', unit_of_measurement: 'h' } } }];
-      const TL = { title: 'Nadpis karty (prázdny = bez hlavičky)', runtime: 'Čiara požiadavky na kúrenie (dole na karte)', hours: 'Čiara ukazuje posledných', warn_hours: 'Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)' };
+      const TL = { title: _('Nadpis karty (prázdny = bez hlavičky)'), runtime: _('Čiara požiadavky na kúrenie (dole na karte)'), hours: _('Čiara ukazuje posledných'), warn_hours: _('Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)') };
       top.computeLabel = (x) => TL[x.name];
       top.addEventListener('value-changed', (e) => {
         e.stopPropagation();
@@ -1428,8 +1584,8 @@
       it.innerHTML = `<div class="ih">
           <span class="hd" title="Potiahni pre zmenu poradia">⠿</span>
           <span class="tx"><b></b><small class="${s ? '' : 'warn'}"></small></span>
-          <button class="ib exp" title="Upraviť">${ICO.down}</button>
-          <button class="ib del" title="Odstrániť">${ICO.del}</button>
+          <button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button>
+          <button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button>
         </div><div class="body"></div>`;
       const setTx = () => { it.querySelector('.tx b').textContent = this._name(e); it.querySelector('.tx small').textContent = s ? sub() : e.entity + ' – entita neexistuje'; };
       setTx();
@@ -1447,7 +1603,7 @@
         { name: 'window', selector: { entity: { domain: 'binary_sensor' } } },
         { name: 'history', selector: { entity: {} } }
       ];
-      const L = { entity: 'Termostat', name: 'Vlastný názov (prázdny = názov z HA)', window: 'Senzor okna – pri otvorení sa termostat zablokuje', history: 'Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)' };
+      const L = { entity: _('Termostat'), name: _('Vlastný názov (prázdny = názov z HA)'), window: _('Senzor okna – pri otvorení sa termostat zablokuje'), history: _('Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)') };
       f.computeLabel = (x) => L[x.name];
       f.addEventListener('value-changed', (ev) => {
         ev.stopPropagation();
@@ -1493,7 +1649,7 @@
   if (!customElements.get('igy-thermostat-card')) customElements.define('igy-thermostat-card', MultiThermostatCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-thermostat-card'))
-    window.customCards.push({ type: 'igy-thermostat-card', name: 'Igy Thermostat Card', description: 'Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.', preview: true });
+    window.customCards.push({ type: 'igy-thermostat-card', name: 'Igy Thermostat Card', description: _('Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.'), preview: true });
   console.info('%c IGY-THERMOSTAT-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -1505,7 +1661,6 @@
  *   type: custom:igy-room-card
  *   area: bedroom              # area id or name
  *   title: Bedroom             # optional, defaults to the area name
- *   language: auto             # optional: auto (HA language) / en / sk
  *   columns: 7                 # optional, buttons per row (default: automatic)
  *   title_tap: toggle          # optional: none / toggle (lights on/off) / more-info
  *   collapsible: true          # optional: card collapses to one row (tap the header)
@@ -1557,7 +1712,7 @@
     }
   };
   function lang(hass, cfg) {
-    const l = (cfg && cfg.language && cfg.language !== 'auto' ? cfg.language : (hass && ((hass.locale && hass.locale.language) || hass.language)) || 'en').toLowerCase().slice(0, 2);
+    const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || (typeof document !== 'undefined' && document.documentElement.lang) || 'en').toLowerCase().slice(0, 2);
     return STR[l] ? l : 'en';
   }
   function T(hass, cfg) { const l = STR[lang(hass, cfg)]; return (k) => l[k] || STR.en[k] || k; }
@@ -1763,7 +1918,7 @@
       if (!h.entities || !h.areas) return;
       const c = this._collect();
       // podpis – prekresli len pri zmene stavu entít karty
-      const sig = [c.aid, this._cfg.title, this._cfg.columns, JSON.stringify([this._cfg.order, this._cfg.buttons, this._cfg.secondary, this._cfg.header, this._cfg.hidden, this._cfg.customize, this._cfg.new_entities, this._cfg.language]), c.sec.length].concat(c.hdr, c.btn).map((id) => {
+      const sig = [c.aid, this._cfg.title, this._cfg.columns, JSON.stringify([this._cfg.order, this._cfg.buttons, this._cfg.secondary, this._cfg.header, this._cfg.hidden, this._cfg.customize, this._cfg.new_entities]), c.sec.length].concat(c.hdr, c.btn).map((id) => {
         const s = h.states[id], a = s ? s.attributes : {}; const e = h.entities[id] || {}; return id + ':' + (a.friendly_name || '') + (e.name || '') + (e.icon || '') + (a.icon || '') + ':' + (s ? s.state + (a.hvac_action || '') + (a.rgb_color || '') + '/' + a.current_temperature + '/' + a.temperature + '/' + a.current_position + '/' + a.brightness : '');
       }).join('|');
       if (sig === this._sig) return;
@@ -1941,28 +2096,24 @@
       const t = this._t, c = this._cfg;
       this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div id="ents"></div></div>`;
       const opt = (v, l) => ({ value: v, label: l });
-      const data = { area: c.area || '', title: c.title || '', language: c.language || 'auto', columns: c.columns || '', title_tap: c.title_tap || 'none',
+      const data = { area: c.area || '', title: c.title || '', columns: c.columns || '', title_tap: c.title_tap || 'none',
         collapsible: !!c.collapsible, collapsed: c.collapsed !== false, new_entities: c.new_entities || 'auto' };
       this._top = this._form(data, [
         { name: 'area', required: true, selector: { area: {} } },
         { name: 'title', selector: { text: {} } },
-        { type: 'grid', name: '', schema: [
-          { name: 'language', selector: { select: { mode: 'dropdown', options: [opt('auto', t('lang_auto')), opt('en', 'English'), opt('sk', 'Slovenčina')] } } },
-          { name: 'columns', selector: { number: { min: 3, max: 10, mode: 'box' } } }] },
+        { name: 'columns', selector: { number: { min: 3, max: 10, mode: 'box' } } },
         { name: 'title_tap', selector: { select: { mode: 'dropdown', options: [opt('none', t('tt_none')), opt('toggle', t('tt_toggle')), opt('more-info', t('tt_more'))] } } },
         { type: 'grid', name: '', schema: [{ name: 'collapsible', selector: { boolean: {} } }, { name: 'collapsed', selector: { boolean: {} } }] },
         { name: 'new_entities', selector: { select: { mode: 'box', options: [opt('auto', t('ne_auto')), opt('hide', t('ne_hide'))] } } }
-      ], { area: t('area'), title: t('title'), language: t('language'), columns: t('columns'), title_tap: t('title_tap'), collapsible: t('collapsible'), collapsed: t('collapsed'), new_entities: t('new_entities') },
+      ], { area: t('area'), title: t('title'), columns: t('columns'), title_tap: t('title_tap'), collapsible: t('collapsible'), collapsed: t('collapsed'), new_entities: t('new_entities') },
       (v) => {
-        const langBefore = lang(this._hass, c);
         ['area', 'title', 'columns'].forEach((k) => { if (v[k] === undefined || v[k] === '' || v[k] === null) delete c[k]; else c[k] = v[k]; });
-        if (v.language && v.language !== 'auto') c.language = v.language; else delete c.language;
+        delete c.language;
         if (v.title_tap && v.title_tap !== 'none') c.title_tap = v.title_tap; else delete c.title_tap;
         if (v.collapsible) c.collapsible = true; else delete c.collapsible;
         if (v.collapsed === false) c.collapsed = false; else delete c.collapsed;
         if (v.new_entities === 'hide') c.new_entities = 'hide'; else delete c.new_entities;
-        this._emit();
-        if (lang(this._hass, c) !== langBefore) this._build(); else this._lists();
+        this._emit(); this._lists();
       });
       this.querySelector('#top').appendChild(this._top);
       this._lists();
@@ -2121,6 +2272,53 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "práve teraz": "just now",
+    "pred {0} min": "{0} min ago",
+    "pred {0} h": "{0} h ago",
+    "včera": "yesterday",
+    "pred {0} d": "{0} d ago",
+    "Ďalšie": "More",
+    "Skryť": "Hide",
+    "entita nenájdená": "entity not found",
+    "Aktivovať": "Activate",
+    "Spustiť": "Run",
+    "Upraviť": "Edit",
+    "Nič": "None",
+    "Posledná zmena": "Last changed",
+    "Posledná aktualizácia": "Last updated",
+    "ID entity": "Entity ID",
+    "Entity": "Entities",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.": "Drag by ⠿ to reorder. Tap an item to set its name, icon and secondary line. A divider starts a new group.",
+    "+ Pridať entitu": "+ Add entity",
+    "+ Pridať oddeľovač": "+ Add divider",
+    "Graf dole": "Graph at the bottom",
+    "Nadpis karty (voliteľné)": "Card title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "Zafarbiť ikonu, keď je zapnuté": "Color the icon when on",
+    "Vyber entitu": "Choose an entity",
+    "Entita grafu (prázdne = bez grafu)": "Graph entity (empty = no graph)",
+    "Koľko hodín dozadu": "Hours to show",
+    "Odstrániť": "Remove",
+    "Skupina": "Group",
+    "— oddeľovač —": "— divider —",
+    "začína novú skupinu": "starts a new group",
+    "entita neexistuje": "entity does not exist",
+    "zbalená": "collapsed",
+    "Nadpis skupiny (voliteľné)": "Group title (optional)",
+    "Entita": "Entity",
+    "Vlastný názov (prázdny = názov z HA)": "Custom name (empty = name from HA)",
+    "Ikona (prázdna = podľa HA)": "Icon (empty = from HA)",
+    "Druhý riadok": "Secondary line",
+    "Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)": "Collapsed – hide under “More” (adjacent collapsed entities are grouped)",
+    "Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.": "Entity list with proper toggles, selects and steppers."
+  };
+
   const VERSION = '1.1.0';
   const ACC = '#ff9f0a';
   const TOGGLE = ['switch', 'light', 'input_boolean', 'fan', 'automation', 'siren', 'humidifier'];
@@ -2222,12 +2420,12 @@
     static getConfigElement() { return document.createElement('igy-entities-card-editor'); }
     static getStubConfig() { return { title: 'Entity', state_color: true, entities: [] }; }
     setConfig(c) {
-      if (!c) throw new Error('Chybná konfigurácia.');
+      if (!c) throw new Error(_('Chybná konfigurácia.'));
       this._config = normalize(c); this._card = null; this._open = null; this._edit = null; this._gpts = null;
       if (this._hass) this._render();
       this._gStart();
     }
-    set hass(h) { const first = !this._hass; this._hass = h; this._render(); if (first) this._gStart(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; this._render(); if (first) this._gStart(); }
     connectedCallback() { this._gStart(); if (!this._tick) this._tick = setInterval(() => this._hass && this._update(), 30000); }
     disconnectedCallback() { clearInterval(this._gT); this._gT = null; clearInterval(this._tick); this._tick = null; }
     getCardSize() { return 1 + Math.ceil(this._config.entities.length * 1.1) + (this._config.graph ? 2 : 0); }
@@ -2246,8 +2444,8 @@
     }
     _ago(ts) {
       const m = Math.round((Date.now() - Date.parse(ts)) / 60000);
-      if (isNaN(m)) return ''; if (m < 1) return 'práve teraz'; if (m < 60) return `pred ${m} min`;
-      const h = Math.floor(m / 60); if (h < 24) return `pred ${h} h`; const d = Math.floor(h / 24); return d === 1 ? 'včera' : `pred ${d} d`;
+      if (isNaN(m)) return ''; if (m < 1) return _('práve teraz'); if (m < 60) return _('pred {0} min', m);
+      const h = Math.floor(m / 60); if (h < 24) return _('pred {0} h', h); const d = Math.floor(h / 24); return d === 1 ? _('včera') : _('pred {0} d', d);
     }
     _call(d, svc, data) { return this._hass.callService(d, svc, data); }
     _more(id) { this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })); }
@@ -2268,7 +2466,7 @@
           if (!open) { html += '<div class="grp">'; open = true; }
           if (e.collapsed && !mo) {
             mo = { k: i, n: 0 };
-            html += `<div class="more${ms[i] ? ' o' : ''}" data-m="${i}"><div class="mt"><span class="ic">${ICO_MORE}</span><span class="nm"><b><span class="ms">Ďalšie</span><span class="mh">Skryť</span></b></span><span class="mc">@@N${i}@@</span><span class="chev">${ICO_CHEV}</span></div><div class="mb">`;
+            html += `<div class="more${ms[i] ? ' o' : ''}" data-m="${i}"><div class="mt"><span class="ic">${ICO_MORE}</span><span class="nm"><b><span class="ms">${_('Ďalšie')}</span><span class="mh">${_('Skryť')}</span></b></span><span class="mc">@@N${i}@@</span><span class="chev">${ICO_CHEV}</span></div><div class="mb">`;
           } else if (!e.collapsed) closeM();
           if (mo) mo.n++;
           html += `<div class="row" data-i="${i}"><span class="ic"></span><span class="nm"><b></b><small></small></span><span class="ctl"></span></div><div class="exp" data-x="${i}"></div>`;
@@ -2326,7 +2524,7 @@
         if (s && e.secondary_info === 'last-changed') sec = this._ago(s.last_changed);
         else if (s && e.secondary_info === 'last-updated') sec = this._ago(s.last_updated);
         else if (e.secondary_info === 'entity-id') sec = e.entity;
-        if (!s) sec = 'entita nenájdená';
+        if (!s) sec = _('entita nenájdená');
         sm.classList.toggle('txt', false);
         // ovládací prvok – kostra sa mení len pri zmene druhu
         if (row._k !== k) { row._k = k; ctl.innerHTML = this._ctlHTML(k, e, s); this._bindCtl(row, k, e); }
@@ -2373,8 +2571,8 @@
         const a = s.attributes, type = a.has_date && a.has_time !== false ? 'datetime-local' : a.has_date ? 'date' : 'time';
         return `<span class="pill"><span></span><input type="${type}" step="60"></span>`;
       }
-      if (k === 'run') return `<span class="pill run"><span>${dom(e.entity) === 'scene' ? 'Aktivovať' : 'Spustiť'}</span></span>`;
-      if (k === 'text') return `<span class="pill"><span>Upraviť</span></span>`;
+      if (k === 'run') return `<span class="pill run"><span>${dom(e.entity) === 'scene' ? _('Aktivovať') : _('Spustiť')}</span></span>`;
+      if (k === 'text') return `<span class="pill"><span>${_('Upraviť')}</span></span>`;
       return '';
     }
 
@@ -2537,7 +2735,7 @@
     down: CHEV,
     del: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9m0 5h2v9H9V8m4 0h2v9h-2V8z"/></svg>'
   };
-  const SEC_OPTS = [{ value: 'none', label: 'Nič' }, { value: 'last-changed', label: 'Posledná zmena' }, { value: 'last-updated', label: 'Posledná aktualizácia' }, { value: 'entity-id', label: 'ID entity' }];
+  const SEC_OPTS = () => [{ value: 'none', label: _('Nič') }, { value: 'last-changed', label: _('Posledná zmena') }, { value: 'last-updated', label: _('Posledná aktualizácia') }, { value: 'entity-id', label: _('ID entity') }];
 
   class HomeEntitiesCardEditor extends HTMLElement {
     setConfig(config) {
@@ -2546,7 +2744,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) {
+    set hass(h) { setLang(h);
       const first = !this._hass; this._hass = h;
       if (first && this._cfg) this._build();
       this.querySelectorAll('ha-form').forEach((f) => { f.hass = h; });
@@ -2566,29 +2764,29 @@
       const open = this._open || new Set();
       this.innerHTML = `<style>${EDCSS}</style><div class="ed">
         <div id="top"></div>
-        <div class="sec">Entity</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.</div>
+        <div class="sec">${_('Entity')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.')}</div>
         <div class="items" id="items"></div>
-        <div class="add"><div class="lbl">+ Pridať entitu</div><div id="addp"></div></div>
-        <button class="btn" id="adddiv">+ Pridať oddeľovač</button>
-        <div class="sec">Graf dole</div>
+        <div class="add"><div class="lbl">${_('+ Pridať entitu')}</div><div id="addp"></div></div>
+        <button class="btn" id="adddiv">${_('+ Pridať oddeľovač')}</button>
+        <div class="sec">${_('Graf dole')}</div>
         <div id="graph"></div>
       </div>`;
       const c = this._cfg;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', icon: c.icon || '', state_color: c.state_color !== false },
         [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } }, { name: 'state_color', selector: { boolean: {} } }],
-        { title: 'Nadpis karty (voliteľné)', icon: 'Ikona pri nadpise', state_color: 'Zafarbiť ikonu, keď je zapnuté' },
+        { title: _('Nadpis karty (voliteľné)'), icon: _('Ikona pri nadpise'), state_color: _('Zafarbiť ikonu, keď je zapnuté') },
         (v) => { ['title', 'icon'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; }); if (v.state_color === false) c.state_color = false; else c.state_color = true; this._emit(); }));
       const box = this.querySelector('#items');
       c.entities.forEach((e, i) => box.appendChild(this._item(e, i, open.has(i))));
-      this.querySelector('#addp').appendChild(this._form({}, [{ name: 'entity', selector: { entity: {} } }], { entity: 'Vyber entitu' }, (v) => {
+      this.querySelector('#addp').appendChild(this._form({}, [{ name: 'entity', selector: { entity: {} } }], { entity: _('Vyber entitu') }, (v) => {
         if (!v.entity) return; c.entities.push({ entity: v.entity }); this._emit(); this._open = new Set(); this._build();
       }));
       this.querySelector('#adddiv').onclick = () => { c.entities.push({ type: 'divider' }); this._emit(); this._open = new Set([c.entities.length - 1]); this._build(); };
       const g = c.graph || {};
       this.querySelector('#graph').appendChild(this._form({ entity: g.entity || '', hours: g.hours || 12 },
         [{ name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'hours', selector: { number: { min: 1, max: 168, step: 1, mode: 'box', unit_of_measurement: 'h' } } }],
-        { entity: 'Entita grafu (prázdne = bez grafu)', hours: 'Koľko hodín dozadu' },
+        { entity: _('Entita grafu (prázdne = bez grafu)'), hours: _('Koľko hodín dozadu') },
         (v) => { if (v.entity) c.graph = { entity: v.entity, hours: Number(v.hours) || 12 }; else delete c.graph; this._emit(); }));
     }
 
@@ -2597,24 +2795,24 @@
       it.className = 'it' + (isOpen ? ' open' : '') + (isDiv ? ' div' : '');
       const s = !isDiv && this._hass.states[e.entity];
       it.innerHTML = `<div class="ih"><span class="hd" title="Potiahni pre zmenu poradia">⠿</span><span class="tx"><b></b><small></small></span>
-        <button class="ib exp" title="Upraviť">${ICO.down}</button><button class="ib del" title="Odstrániť">${ICO.del}</button></div><div class="body"></div>`;
+        <button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button><button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button></div><div class="body"></div>`;
       const setTx = () => {
-        it.querySelector('.tx b').textContent = isDiv ? (e.label ? 'Skupina: ' + e.label : '— oddeľovač —') : e.name || (s && s.attributes.friendly_name) || e.entity;
+        it.querySelector('.tx b').textContent = isDiv ? (e.label ? _('Skupina') + ': ' + e.label : _('— oddeľovač —')) : e.name || (s && s.attributes.friendly_name) || e.entity;
         const sm = it.querySelector('.tx small'); sm.className = !isDiv && !s ? 'warn' : '';
-        sm.textContent = isDiv ? 'začína novú skupinu' : (s ? e.entity : e.entity + ' – entita neexistuje') + (e.collapsed ? ' · zbalená' : '');
+        sm.textContent = isDiv ? _('začína novú skupinu') : (s ? e.entity : e.entity + ' – ' + _('entita neexistuje')) + (e.collapsed ? ' · ' + _('zbalená') : '');
       };
       setTx();
       const toggle = () => { it.classList.toggle('open'); this._open = new Set([...this.querySelectorAll('.it')].map((x, k) => x.classList.contains('open') ? k : -1).filter((k) => k >= 0)); };
       it.querySelector('.tx').onclick = toggle; it.querySelector('.exp').onclick = toggle;
       it.querySelector('.del').onclick = () => { c.entities.splice(i, 1); this._emit(); this._open = new Set(); this._build(); };
       const f = isDiv
-        ? this._form({ label: e.label || '' }, [{ name: 'label', selector: { text: {} } }], { label: 'Nadpis skupiny (voliteľné)' }, (v) => {
+        ? this._form({ label: e.label || '' }, [{ name: 'label', selector: { text: {} } }], { label: _('Nadpis skupiny (voliteľné)') }, (v) => {
           if (v.label) e.label = v.label; else delete e.label; setTx(); this._emit();
         })
         : this._form({ entity: e.entity, name: e.name || '', icon: e.icon || '', secondary_info: e.secondary_info || 'none', collapsed: !!e.collapsed },
           [{ name: 'entity', required: true, selector: { entity: {} } }, { name: 'name', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
-            { name: 'secondary_info', selector: { select: { mode: 'dropdown', options: SEC_OPTS } } }, { name: 'collapsed', selector: { boolean: {} } }],
-          { entity: 'Entita', name: 'Vlastný názov (prázdny = názov z HA)', icon: 'Ikona (prázdna = podľa HA)', secondary_info: 'Druhý riadok', collapsed: 'Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)' },
+            { name: 'secondary_info', selector: { select: { mode: 'dropdown', options: SEC_OPTS() } } }, { name: 'collapsed', selector: { boolean: {} } }],
+          { entity: _('Entita'), name: _('Vlastný názov (prázdny = názov z HA)'), icon: _('Ikona (prázdna = podľa HA)'), secondary_info: _('Druhý riadok'), collapsed: _('Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)') },
           (v) => {
             const n = { entity: v.entity || e.entity };
             if (v.name) n.name = v.name; if (v.icon) n.icon = v.icon; if (v.secondary_info && v.secondary_info !== 'none') n.secondary_info = v.secondary_info; if (v.collapsed) n.collapsed = true;
@@ -2654,7 +2852,7 @@
   if (!customElements.get('igy-entities-card')) customElements.define('igy-entities-card', HomeEntitiesCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-entities-card'))
-    window.customCards.push({ type: 'igy-entities-card', name: 'Igy Entities Card', description: 'Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.', preview: true });
+    window.customCards.push({ type: 'igy-entities-card', name: 'Igy Entities Card', description: _('Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.'), preview: true });
   console.info('%c IGY-ENTITIES-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -2690,6 +2888,53 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "práve teraz": "just now",
+    "pred {0} min": "{0} min ago",
+    "pred {0} h": "{0} h ago",
+    "pred {0} d": "{0} d ago",
+    "Pridaj tlačidlá v nastaveniach karty.": "Add buttons in the card settings.",
+    "Potvrdiť": "Confirm",
+    "Automaticky podľa entity": "Automatic by entity",
+    "Prepnúť / spustiť": "Toggle / run",
+    "Detail entity": "Entity details",
+    "Spustiť akciu (služba)": "Perform action (service)",
+    "Prejsť na stránku": "Navigate to page",
+    "Otvoriť odkaz": "Open URL",
+    "Nič": "Nothing",
+    "Tlačidlá": "Buttons",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.": "Drag by ⠿ to reorder. Tap a button to set its name, icon, action and confirmation.",
+    "+ Pridať tlačidlo": "+ Add button",
+    "Dlaždice": "Tiles",
+    "Pilulky": "Pills",
+    "Len ikony": "Icons only",
+    "Nadpis (voliteľné)": "Title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "Vzhľad": "Layout",
+    "Stĺpcov (prázdne = automaticky)": "Columns (empty = automatic)",
+    "Nové tlačidlo": "New button",
+    "vyber entitu alebo akciu": "choose an entity or action",
+    "Entita": "Entity",
+    "Názov": "Name",
+    "Ikona": "Icon",
+    "Ťuk": "Tap action",
+    "Akcia (napr. vacuum.start)": "Action (e.g. vacuum.start)",
+    "Stránka (napr. /lovelace/kuchyna)": "Page (e.g. /lovelace/kitchen)",
+    "Odkaz": "URL",
+    "Potvrdiť druhým ťukom": "Confirm with a second tap",
+    "Zobraziť názov": "Show name",
+    "Farba zapnutého stavu (voliteľné, napr. #ff6961)": "Active color (optional, e.g. #ff6961)",
+    "Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.": "Automatic: button/script/scene = run, switch/boolean = toggle, otherwise details. Long press always opens details.",
+    "Len pre „Spustiť akciu“ – cieľom je vybraná entita.": "Only for “Perform action” – the selected entity is the target.",
+    "Proti náhodnému stlačeniu (napr. stráženie, brána).": "Prevents accidental presses (e.g. alarm, gate).",
+    "Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.": "Buttons to trigger actions – tiles, pills or icons."
+  };
+
   const VERSION = '1.0.4';
   const ACC = '#ff9f0a';
   const TOGGLE = ['switch', 'light', 'input_boolean', 'fan', 'automation', 'siren', 'humidifier', 'group'];
@@ -2748,8 +2993,8 @@
   class HomeButtonsCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-buttons-card-editor'); }
     static getStubConfig() { return { layout: 'tiles', buttons: [] }; }
-    setConfig(c) { if (!c) throw new Error('Chybná konfigurácia.'); this._cfg = normalize(c); this._built = false; if (this._hass) this._render(); }
-    set hass(h) { this._hass = h; this._render(); }
+    setConfig(c) { if (!c) throw new Error(_('Chybná konfigurácia.')); this._cfg = normalize(c); this._built = false; if (this._hass) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; this._render(); }
     getCardSize() { const n = this._cfg.buttons.length, cols = this._cols(); return (this._cfg.title ? 1 : 0) + Math.ceil(n / cols) * (this._cfg.layout === 'tiles' || !this._cfg.layout ? 2 : 1); }
     getGridOptions() { return { columns: 12, min_columns: 3 }; }
     _cols() { const c = this._cfg; return c.columns || Math.min(c.buttons.length || 1, c.layout === 'icons' ? 6 : c.layout === 'pills' ? 2 : 4); }
@@ -2767,7 +3012,7 @@
       }
       return '';
     }
-    _ago(ts) { const m = Math.round((Date.now() - Date.parse(ts)) / 60000); if (isNaN(m)) return ''; return m < 1 ? 'práve teraz' : m < 60 ? `pred ${m} min` : m < 1440 ? `pred ${Math.floor(m / 60)} h` : `pred ${Math.floor(m / 1440)} d`; }
+    _ago(ts) { const m = Math.round((Date.now() - Date.parse(ts)) / 60000); if (isNaN(m)) return ''; return m < 1 ? _('práve teraz') : m < 60 ? _('pred {0} min', m) : m < 1440 ? _('pred {0} h', Math.floor(m / 60)) : _('pred {0} d', Math.floor(m / 1440)); }
 
     _render() {
       if (!this._hass || !this._cfg) return;
@@ -2779,7 +3024,7 @@
           ${c.title ? `<div class="hl">${c.icon ? `<ha-icon icon="${esc(c.icon)}"></ha-icon>` : ''}<span>${esc(c.title)}</span></div>` : ''}
           ${c.buttons.length ? `<div class="g ${lay}" style="grid-template-columns:repeat(${this._cols()},minmax(0,1fr))">${c.buttons.map((b, i) => `
             <button class="b" data-i="${i}"><span class="ic"></span>${lay === 'pills' ? '<span class="tx"><span class="nm"></span><span class="st"></span></span>' : '<span class="nm"></span><span class="st"></span>'}<span class="ov"></span></button>`).join('')}</div>`
-            : '<div class="empty">Pridaj tlačidlá v nastaveniach karty.</div>'}
+            : '<div class="empty">' + _('Pridaj tlačidlá v nastaveniach karty.') + '</div>'}
         </ha-card>`;
         this.shadowRoot.querySelectorAll('.b').forEach((el) => this._bind(el));
         this._built = true;
@@ -2815,7 +3060,7 @@
     _tap(el) {
       const i = +el.dataset.i, b = this._cfg.buttons[i];
       if (b.confirm && !el.classList.contains('cf')) {
-        el.querySelector('.ov').innerHTML = `<ha-icon icon="mdi:gesture-tap"></ha-icon>${esc(typeof b.confirm === 'string' ? b.confirm : 'Potvrdiť')}`;
+        el.querySelector('.ov').innerHTML = `<ha-icon icon="mdi:gesture-tap"></ha-icon>${esc(typeof b.confirm === 'string' ? b.confirm : _('Potvrdiť'))}`;
         el.classList.add('cf'); clearTimeout(el._cfT); el._cfT = setTimeout(() => el.classList.remove('cf'), 3000);
         return;
       }
@@ -2880,8 +3125,8 @@
   `;
   const ICO = { down: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>',
     del: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9m0 5h2v9H9V8m4 0h2v9h-2V8z"/></svg>' };
-  const ACTS = [{ value: 'auto', label: 'Automaticky podľa entity' }, { value: 'toggle', label: 'Prepnúť / spustiť' }, { value: 'more-info', label: 'Detail entity' },
-    { value: 'perform-action', label: 'Spustiť akciu (služba)' }, { value: 'navigate', label: 'Prejsť na stránku' }, { value: 'url', label: 'Otvoriť odkaz' }, { value: 'none', label: 'Nič' }];
+  const ACTS = () => [{ value: 'auto', label: _('Automaticky podľa entity') }, { value: 'toggle', label: _('Prepnúť / spustiť') }, { value: 'more-info', label: _('Detail entity') },
+    { value: 'perform-action', label: _('Spustiť akciu (služba)') }, { value: 'navigate', label: _('Prejsť na stránku') }, { value: 'url', label: _('Otvoriť odkaz') }, { value: 'none', label: _('Nič') }];
 
   class HomeButtonsCardEditor extends HTMLElement {
     setConfig(config) {
@@ -2890,7 +3135,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       // HA konfiguráciu zmrazí – posiela sa hlboká kópia, vlastný stav editora ostane upraviteľný
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-buttons-card' }, this._cfg)));
@@ -2900,13 +3145,13 @@
     _form(data, schema, L, H, cb) { const f = document.createElement('ha-form'); f.hass = this._hass; f.data = data; f.schema = schema; f.computeLabel = (x) => L[x.name] || x.name; f.computeHelper = (x) => H && H[x.name]; f.addEventListener('value-changed', (e) => { e.stopPropagation(); const v = Object.assign({}, e.detail.value); try { cb(v); } catch (err) { console.error('igy-buttons-card editor:', err); } }); return f; }
     _build() {
       const c = this._cfg, open = this._open || new Set();
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Tlačidlá</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.</div><div class="items" id="items"></div><button class="btn" id="add">+ Pridať tlačidlo</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Tlačidlá')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.')}</div><div class="items" id="items"></div><button class="btn" id="add">${_('+ Pridať tlačidlo')}</button></div>`;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', icon: c.icon || '', layout: c.layout || 'tiles', columns: c.columns || '' },
         [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
-          { name: 'layout', selector: { select: { mode: 'box', options: [{ value: 'tiles', label: 'Dlaždice' }, { value: 'pills', label: 'Pilulky' }, { value: 'icons', label: 'Len ikony' }] } } },
+          { name: 'layout', selector: { select: { mode: 'box', options: [{ value: 'tiles', label: _('Dlaždice') }, { value: 'pills', label: _('Pilulky') }, { value: 'icons', label: _('Len ikony') }] } } },
           { name: 'columns', selector: { number: { min: 1, max: 8, mode: 'box' } } }],
-        { title: 'Nadpis (voliteľné)', icon: 'Ikona pri nadpise', layout: 'Vzhľad', columns: 'Stĺpcov (prázdne = automaticky)' }, null,
+        { title: _('Nadpis (voliteľné)'), icon: _('Ikona pri nadpise'), layout: _('Vzhľad'), columns: _('Stĺpcov (prázdne = automaticky)') }, null,
         (v) => { ['title', 'icon', 'columns'].forEach((k) => { if (v[k] === '' || v[k] == null) delete c[k]; else c[k] = v[k]; }); if (v.layout && v.layout !== 'tiles') c.layout = v.layout; else delete c.layout; this._emit(); }));
       const box = this.querySelector('#items');
       c.buttons.forEach((b, i) => box.appendChild(this._item(b, i, open.has(i))));
@@ -2917,7 +3162,7 @@
       const c = this._cfg, it = document.createElement('div');
       it.className = 'it' + (isOpen ? ' open' : '');
       it.innerHTML = `<div class="ih"><span class="hd">⠿</span><span class="tx"><b></b><small></small></span><button class="ib exp">${ICO.down}</button><button class="ib del">${ICO.del}</button></div><div class="body"></div>`;
-      const setTx = () => { const s = b.entity && this._hass.states[b.entity]; it.querySelector('.tx b').textContent = b.name || (s && s.attributes.friendly_name) || b.entity || 'Nové tlačidlo'; it.querySelector('.tx small').textContent = [b.entity, b.tap_action && b.tap_action.action].filter(Boolean).join(' · ') || 'vyber entitu alebo akciu'; };
+      const setTx = () => { const s = b.entity && this._hass.states[b.entity]; it.querySelector('.tx b').textContent = b.name || (s && s.attributes.friendly_name) || b.entity || _('Nové tlačidlo'); it.querySelector('.tx small').textContent = [b.entity, b.tap_action && b.tap_action.action].filter(Boolean).join(' · ') || _('vyber entitu alebo akciu'); };
       setTx();
       const tog = () => { it.classList.toggle('open'); this._open = new Set([...this.querySelectorAll('.it')].map((x, k) => x.classList.contains('open') ? k : -1).filter((k) => k >= 0)); };
       it.querySelector('.tx').onclick = tog; it.querySelector('.exp').onclick = tog;
@@ -2927,14 +3172,14 @@
         action: ta.action || 'auto', perform_action: ta.perform_action || ta.service || '', navigation_path: ta.navigation_path || '', url_path: ta.url_path || '' };
       const schema = [{ name: 'entity', selector: { entity: {} } },
         { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } }] },
-        { name: 'action', selector: { select: { mode: 'dropdown', options: ACTS } } },
+        { name: 'action', selector: { select: { mode: 'dropdown', options: ACTS() } } },
         { name: 'perform_action', selector: { text: {} } }, { name: 'navigation_path', selector: { text: {} } }, { name: 'url_path', selector: { text: {} } },
         { type: 'grid', name: '', schema: [{ name: 'confirm', selector: { boolean: {} } }, { name: 'show_name', selector: { boolean: {} } }] },
         { name: 'color', selector: { text: {} } }];
-      const L = { entity: 'Entita', name: 'Názov', icon: 'Ikona', action: 'Ťuk', perform_action: 'Akcia (napr. vacuum.start)', navigation_path: 'Stránka (napr. /lovelace/kuchyna)', url_path: 'Odkaz',
-        confirm: 'Potvrdiť druhým ťukom', show_name: 'Zobraziť názov', color: 'Farba zapnutého stavu (voliteľné, napr. #ff6961)' };
-      const Hh = { action: 'Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.',
-        perform_action: 'Len pre „Spustiť akciu“ – cieľom je vybraná entita.', confirm: 'Proti náhodnému stlačeniu (napr. stráženie, brána).' };
+      const L = { entity: _('Entita'), name: _('Názov'), icon: _('Ikona'), action: _('Ťuk'), perform_action: _('Akcia (napr. vacuum.start)'), navigation_path: _('Stránka (napr. /lovelace/kuchyna)'), url_path: _('Odkaz'),
+        confirm: _('Potvrdiť druhým ťukom'), show_name: _('Zobraziť názov'), color: _('Farba zapnutého stavu (voliteľné, napr. #ff6961)') };
+      const Hh = { action: _('Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.'),
+        perform_action: _('Len pre „Spustiť akciu“ – cieľom je vybraná entita.'), confirm: _('Proti náhodnému stlačeniu (napr. stráženie, brána).') };
       it.querySelector('.body').appendChild(this._form(data, schema, L, Hh, (v) => {
         const n = {};
         ['entity', 'name', 'icon', 'color'].forEach((k) => { if (v[k]) n[k] = v[k]; });
@@ -2972,7 +3217,7 @@
   if (!customElements.get('igy-buttons-card')) customElements.define('igy-buttons-card', HomeButtonsCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-buttons-card'))
-    window.customCards.push({ type: 'igy-buttons-card', name: 'Igy Buttons Card', description: 'Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.', preview: true });
+    window.customCards.push({ type: 'igy-buttons-card', name: 'Igy Buttons Card', description: _('Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.'), preview: true });
   console.info('%c IGY-BUTTONS-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -2997,6 +3242,24 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Poznámka": "Note",
+    "### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**": "### Heading\nText with **bold** font.\n- ☀️ list item\n- **🔋 highlighted item**",
+    "Chýba content.": "Missing content.",
+    "Načítavam…": "Loading…",
+    "Nadpis karty (voliteľné)": "Card title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "--- rozdelí obsah do skupín": "--- splits content into groups",
+    "Bez pozadia karty": "No card background",
+    "Obsah (Markdown + šablóny)": "Content (Markdown + templates)",
+    "Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.": "Content works like the standard Markdown card (Jinja templates included). In addition: <b>---</b> starts a new group, an <b>emoji</b> at the start of a list item becomes its icon, a <b>bold item</b> is highlighted.",
+    "Markdown so šablónami v jednotnom štýle, skupiny cez ---.": "Markdown with templates in the shared style, groups via ---."
+  };
+
   const VERSION = '1.0.1';
   const ACC = '#ff9f0a';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -3116,15 +3379,15 @@
 
   class HomeMarkdownCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-markdown-card-editor'); }
-    static getStubConfig() { return { title: 'Poznámka', content: '### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**' }; }
+    static getStubConfig() { return { title: _('Poznámka'), content: _('### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**') }; }
     setConfig(c) {
-      if (!c || c.content == null) throw new Error('Chýba content.');
+      if (!c || c.content == null) throw new Error(_('Chýba content.'));
       const changed = !this._config || c.content !== this._config.content;
       this._config = Object.assign({}, c); this._built = false;
       if (changed) { this._unsub(); this._res = null; this._err = null; }
       if (this._hass) { this._render(); this._sub(); }
     }
-    set hass(h) { const first = !this._hass; this._hass = h; if (first && this._config) { this._render(); this._sub(); } }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; if (first && this._config) { this._render(); this._sub(); } }
     connectedCallback() { if (this._hass) this._sub(); }
     disconnectedCallback() { this._unsub(); }
     getCardSize() { return 3 + Math.round(((this._res || this._config.content || '').match(/\n/g) || []).length / 3); }
@@ -3148,7 +3411,7 @@
       const c = this._config;
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card class="${c.text_only ? 'plain' : ''}">
         ${c.title ? `<div class="hl">${c.icon ? `<ha-icon icon="${esc(c.icon)}"></ha-icon>` : ''}<span>${esc(c.title)}</span></div>` : ''}
-        <div class="body" id="b"><div class="ld">Načítavam…</div></div></ha-card>`;
+        <div class="body" id="b"><div class="ld">${_('Načítavam…')}</div></div></ha-card>`;
       this._built = true; this._last = null;
       if (this._res != null || this._err) this._draw();
     }
@@ -3172,14 +3435,14 @@
   class HomeMarkdownCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
     _data() { const c = this._cfg || {}; return { title: c.title || '', icon: c.icon || '', grouped: c.grouped !== false, text_only: !!c.text_only, content: c.content || '' }; }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
         f.schema = [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
           { type: 'grid', name: '', schema: [{ name: 'grouped', selector: { boolean: {} } }, { name: 'text_only', selector: { boolean: {} } }] },
           { name: 'content', selector: { template: {} } }];
-        const L = { title: 'Nadpis karty (voliteľné)', icon: 'Ikona pri nadpise', grouped: '--- rozdelí obsah do skupín', text_only: 'Bez pozadia karty', content: 'Obsah (Markdown + šablóny)' };
+        const L = { title: _('Nadpis karty (voliteľné)'), icon: _('Ikona pri nadpise'), grouped: _('--- rozdelí obsah do skupín'), text_only: _('Bez pozadia karty'), content: _('Obsah (Markdown + šablóny)') };
         f.computeLabel = (x) => L[x.name] || x.name;
         f.addEventListener('value-changed', (e) => {
           const v = e.detail.value, c = Object.assign({ type: 'custom:igy-markdown-card' }, this._cfg);
@@ -3192,7 +3455,7 @@
         });
         const hint = document.createElement('div');
         hint.style.cssText = 'font-size:13px;color:var(--secondary-text-color);line-height:1.4;margin-bottom:12px';
-        hint.innerHTML = 'Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.';
+        hint.innerHTML = _('Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.');
         this.appendChild(hint); this.appendChild(f);
       }
       this._f.hass = h; this._f.data = this._data();
@@ -3203,7 +3466,7 @@
   if (!customElements.get('igy-markdown-card')) customElements.define('igy-markdown-card', HomeMarkdownCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-markdown-card'))
-    window.customCards.push({ type: 'igy-markdown-card', name: 'Igy Markdown Card', description: 'Markdown so šablónami v jednotnom štýle, skupiny cez ---.', preview: true });
+    window.customCards.push({ type: 'igy-markdown-card', name: 'Igy Markdown Card', description: _('Markdown so šablónami v jednotnom štýle, skupiny cez ---.'), preview: true });
   console.info('%c IGY-MARKDOWN-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -3238,6 +3501,42 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Spotreba po okruhoch": "Power by circuit",
+    "Skupina": "Group",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "Fázy": "Phases",
+    "Skupiny ističov": "Breaker groups",
+    "Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.": "Tap a group to edit its name and circuits. Use the arrows to reorder. Groups are collapsed in the card by default.",
+    "+ Pridať skupinu": "+ Add group",
+    "Nadpis": "Title",
+    "Celková spotreba domu (voliteľné)": "Total house power (optional)",
+    "Plný pásik fázy": "Full phase bar",
+    "Plný pásik okruhu": "Full circuit bar",
+    "Bez nej sa zobrazí súčet fáz.": "Without it the sum of the phases is shown.",
+    "Vyššie": "Move up",
+    "Nižšie": "Move down",
+    "Upraviť": "Edit",
+    "Odstrániť": "Remove",
+    "predvolene rozbalená": "expanded by default",
+    "Názov skupiny": "Group name",
+    "Súčet skupiny (voliteľné)": "Group total (optional)",
+    "Predvolene rozbalená": "Expanded by default",
+    "Bez neho karta sčíta okruhy v skupine.": "Without it the card adds up the circuits in the group.",
+    "+ Pridať okruh": "+ Add circuit",
+    "Nový okruh": "New circuit",
+    "entita neexistuje": "entity does not exist",
+    "vyber entitu": "choose an entity",
+    "Senzor výkonu okruhu": "Circuit power sensor",
+    "Názov (napr. čo je na okruhu)": "Name (e.g. what is on the circuit)",
+    "Fáza": "Phase",
+    "Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.": "Power per circuit and phase – collapsible breaker groups."
+  };
+
   const VERSION = '1.1.0';
   const PH = { L1: '#d6a36b', L2: '#a3acbd', L3: '#6aa8ff' };
   const COL = { low: '#34d399', mid: '#818cf8', high: '#f87171' };
@@ -3301,13 +3600,13 @@
 
   class HomeCircuitsCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-circuits-card-editor'); }
-    static getStubConfig() { return { title: 'Spotreba po okruhoch', groups: [{ name: 'Skupina 1', rows: [] }] }; }
+    static getStubConfig() { return { title: _('Spotreba po okruhoch'), groups: [{ name: _('Skupina') + ' 1', rows: [] }] }; }
     setConfig(c) {
-      if (!c) throw new Error('Chybná konfigurácia.');
+      if (!c) throw new Error(_('Chybná konfigurácia.'));
       this._cfg = normalize(c); this._built = false;
       if (this._hass) this._render();
     }
-    set hass(h) { this._hass = h; if (this._cfg) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; if (this._cfg) this._render(); }
     getCardSize() { return 2 + (this._cfg ? this._cfg.groups.length : 1); }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
@@ -3332,7 +3631,7 @@
     _build() {
       const c = this._cfg;
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-      let h = `<div class="hl">${BOLT}<span>${esc(c.title || 'Spotreba po okruhoch')}</span><span class="tot" data-more="${esc(c.total || '')}"><span id="tv">–</span><small id="tu">W</small></span></div>`;
+      let h = `<div class="hl">${BOLT}<span>${esc(c.title || _('Spotreba po okruhoch'))}</span><span class="tot" data-more="${esc(c.total || '')}"><span id="tv">–</span><small id="tu">W</small></span></div>`;
       if (c.phases.length) {
         h += `<div class="box ph" style="--n:${c.phases.length}">` + c.phases.map((p, i) => {
           const n = p.name || 'L' + (i + 1), col = p.color || PH[n] || PH['L' + (i + 1)] || '#a3acbd';
@@ -3341,7 +3640,7 @@
       }
       c.groups.forEach((g, gi) => {
         const ph = [...new Set(g.rows.map((r) => r.phase).filter((x) => PH[x]))];
-        h += `<div class="box grp${this._isOpen(g, gi) ? ' open' : ''}" data-g="${gi}"><div class="gh" data-tg="${gi}"><span class="gn">${esc(g.name || 'Skupina ' + (gi + 1))}</span>`
+        h += `<div class="box grp${this._isOpen(g, gi) ? ' open' : ''}" data-g="${gi}"><div class="gh" data-tg="${gi}"><span class="gn">${esc(g.name || _('Skupina') + ' ' + (gi + 1))}</span>`
           + `<span class="dots">${ph.map((x) => `<i style="--c:${PH[x]}" title="${x}"></i>`).join('')}</span>`
           + `<span class="gv" data-gv="${gi}">–</span><span class="ch">${CHEV}</span></div><div class="rows">`
           + g.rows.map((r, ri) => {
@@ -3442,7 +3741,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       // HA konfiguráciu zmrazí – posiela sa hlboká kópia
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-circuits-card' }, this._cfg)));
@@ -3460,16 +3759,16 @@
     _openSet() { return this._open || (this._open = new Set()); }
     _build() {
       const c = this._cfg;
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Fázy</div><div id="ph"></div>
-        <div class="sec">Skupiny ističov</div><div class="hint">Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.</div>
-        <div class="items" id="items"></div><button class="btn" id="addg">+ Pridať skupinu</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Fázy')}</div><div id="ph"></div>
+        <div class="sec">${_('Skupiny ističov')}</div><div class="hint">${_('Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.')}</div>
+        <div class="items" id="items"></div><button class="btn" id="addg">${_('+ Pridať skupinu')}</button></div>`;
       const ent = (n) => ({ name: n, selector: { entity: { domain: 'sensor' } } });
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', total: c.total || '', phase_max: c.phase_max || 3680, circuit_max: c.circuit_max || 3680 },
         [{ name: 'title', selector: { text: {} } }, ent('total'),
           { type: 'grid', name: '', schema: [{ name: 'phase_max', selector: { number: { min: 500, max: 20000, step: 10, mode: 'box', unit_of_measurement: 'W' } } },
             { name: 'circuit_max', selector: { number: { min: 100, max: 20000, step: 10, mode: 'box', unit_of_measurement: 'W' } } }] }],
-        { title: 'Nadpis', total: 'Celková spotreba domu (voliteľné)', phase_max: 'Plný pásik fázy', circuit_max: 'Plný pásik okruhu' },
-        { total: 'Bez nej sa zobrazí súčet fáz.', phase_max: '16 A × 230 V = 3680 W' },
+        { title: _('Nadpis'), total: _('Celková spotreba domu (voliteľné)'), phase_max: _('Plný pásik fázy'), circuit_max: _('Plný pásik okruhu') },
+        { total: _('Bez nej sa zobrazí súčet fáz.'), phase_max: '16 A × 230 V = 3680 W' },
         (v) => {
           ['title', 'total'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; });
           ['phase_max', 'circuit_max'].forEach((k) => { if (v[k] && +v[k] !== 3680) c[k] = +v[k]; else delete c[k]; });
@@ -3481,10 +3780,10 @@
       }));
       const box = this.querySelector('#items'), open = this._openSet();
       c.groups.forEach((g, gi) => box.appendChild(this._group(g, gi, open.has('g' + gi))));
-      this.querySelector('#addg').onclick = () => { c.groups.push({ name: 'Skupina ' + (c.groups.length + 1), rows: [] }); open.add('g' + (c.groups.length - 1)); this._emit(); this._build(); };
+      this.querySelector('#addg').onclick = () => { c.groups.push({ name: _('Skupina') + ' ' + (c.groups.length + 1), rows: [] }); open.add('g' + (c.groups.length - 1)); this._emit(); this._build(); };
     }
     _head(it, title, sub, warn, onUp, onDn, onDel, upDis, dnDis, key) {
-      it.innerHTML = `<div class="ih"><span class="tx"><b></b><small></small></span><button class="ib up" title="Vyššie">${ICO.up}</button><button class="ib dn" title="Nižšie">${ICO.dn}</button><button class="ib exp" title="Upraviť">${ICO.down}</button><button class="ib del" title="Odstrániť">${ICO.del}</button></div><div class="body"></div>`;
+      it.innerHTML = `<div class="ih"><span class="tx"><b></b><small></small></span><button class="ib up" title="${_('Vyššie')}">${ICO.up}</button><button class="ib dn" title="${_('Nižšie')}">${ICO.dn}</button><button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button><button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button></div><div class="body"></div>`;
       const ih = it.querySelector(':scope > .ih');
       ih.querySelector('.tx b').innerHTML = title; const sm = ih.querySelector('.tx small'); sm.textContent = sub; sm.className = warn ? 'warn' : '';
       const tog = () => { it.classList.toggle('open'); const o = this._openSet(); if (it.classList.contains('open')) o.add(key); else o.delete(key); };
@@ -3496,17 +3795,17 @@
     _group(g, gi, isOpen) {
       const c = this._cfg, it = document.createElement('div'); it.className = 'it' + (isOpen ? ' open' : '');
       const mv = (d) => () => { const j = gi + d; [c.groups[gi], c.groups[j]] = [c.groups[j], c.groups[gi]]; this._open = new Set(); this._emit(); this._build(); };
-      const body = this._head(it, esc(g.name || 'Skupina ' + (gi + 1)), g.rows.length + ' ' + (g.rows.length === 1 ? 'okruh' : g.rows.length >= 2 && g.rows.length <= 4 ? 'okruhy' : 'okruhov') + (g.expanded ? ' · predvolene rozbalená' : ''), false,
+      const nr = g.rows.length, body = this._head(it, esc(g.name || _('Skupina') + ' ' + (gi + 1)), nr + ' ' + (LANG === 'sk' ? (nr === 1 ? 'okruh' : nr >= 2 && nr <= 4 ? 'okruhy' : 'okruhov') : (nr === 1 ? 'circuit' : 'circuits')) + (g.expanded ? ' · ' + _('predvolene rozbalená') : ''), false,
         mv(-1), mv(1), () => { c.groups.splice(gi, 1); this._open = new Set(); this._emit(); this._build(); }, gi === 0, gi === c.groups.length - 1, 'g' + gi);
       body.appendChild(this._form({ name: g.name || '', entity: g.entity || '', expanded: !!g.expanded }, [{ name: 'name', selector: { text: {} } }, { name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'expanded', selector: { boolean: {} } }],
-        { name: 'Názov skupiny', entity: 'Súčet skupiny (voliteľné)', expanded: 'Predvolene rozbalená' }, { entity: 'Bez neho karta sčíta okruhy v skupine.' }, (v) => {
+        { name: _('Názov skupiny'), entity: _('Súčet skupiny (voliteľné)'), expanded: _('Predvolene rozbalená') }, { entity: _('Bez neho karta sčíta okruhy v skupine.') }, (v) => {
           g.name = v.name || ''; if (v.entity) g.entity = v.entity; else delete g.entity; if (v.expanded) g.expanded = true; else delete g.expanded;
-          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').textContent = g.name || 'Skupina ' + (gi + 1); this._emit();
+          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').textContent = g.name || _('Skupina') + ' ' + (gi + 1); this._emit();
         }));
       const rows = document.createElement('div'); rows.className = 'items';
       g.rows.forEach((r, ri) => rows.appendChild(this._row(g, gi, r, ri)));
       body.appendChild(rows);
-      const add = document.createElement('button'); add.className = 'btn'; add.textContent = '+ Pridať okruh';
+      const add = document.createElement('button'); add.className = 'btn'; add.textContent = _('+ Pridať okruh');
       add.onclick = () => { const last = g.rows[g.rows.length - 1], ph = last && last.phase ? ['L1', 'L2', 'L3'][(['L1', 'L2', 'L3'].indexOf(last.phase) + 1) % 3] : 'L1';
         g.rows.push({ phase: ph }); this._openSet().add('g' + gi).add('r' + gi + '.' + (g.rows.length - 1)); this._emit(); this._build(); };
       body.appendChild(add);
@@ -3515,19 +3814,19 @@
     _row(g, gi, r, ri) {
       const it = document.createElement('div'), key = 'r' + gi + '.' + ri; it.className = 'it' + (this._openSet().has(key) ? ' open' : '');
       const s = r.entity && this._hass.states[r.entity];
-      const title = () => (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (s && s.attributes.friendly_name) || r.entity || 'Nový okruh');
+      const title = () => (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (s && s.attributes.friendly_name) || r.entity || _('Nový okruh'));
       const mv = (d) => () => { const j = ri + d; [g.rows[ri], g.rows[j]] = [g.rows[j], g.rows[ri]]; this._emit(); this._build(); };
-      const body = this._head(it, title(), r.entity ? (s ? r.entity : r.entity + ' – entita neexistuje') : 'vyber entitu', !!r.entity && !s,
+      const body = this._head(it, title(), r.entity ? (s ? r.entity : r.entity + ' – ' + _('entita neexistuje')) : _('vyber entitu'), !!r.entity && !s,
         mv(-1), mv(1), () => { g.rows.splice(ri, 1); this._open = new Set(['g' + gi]); this._emit(); this._build(); }, ri === 0, ri === g.rows.length - 1, key);
       body.appendChild(this._form({ entity: r.entity || '', name: r.name || '', phase: r.phase || 'none' },
         [{ name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'name', selector: { text: {} } },
           { name: 'phase', selector: { select: { mode: 'box', options: PHO } } }],
-        { entity: 'Senzor výkonu okruhu', name: 'Názov (napr. čo je na okruhu)', phase: 'Fáza' }, null, (v) => {
+        { entity: _('Senzor výkonu okruhu'), name: _('Názov (napr. čo je na okruhu)'), phase: _('Fáza') }, null, (v) => {
           const n = {}; if (v.entity) n.entity = v.entity; if (v.name) n.name = v.name; if (v.phase && v.phase !== 'none') n.phase = v.phase; if (r.max) n.max = r.max;
           Object.keys(r).forEach((k) => delete r[k]); Object.assign(r, n);
           const ns = r.entity && this._hass.states[r.entity];
-          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').innerHTML = (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (ns && ns.attributes.friendly_name) || r.entity || 'Nový okruh');
-          const sm = ih.querySelector('.tx small'); sm.textContent = r.entity ? (ns ? r.entity : r.entity + ' – entita neexistuje') : 'vyber entitu'; sm.className = r.entity && !ns ? 'warn' : '';
+          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').innerHTML = (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (ns && ns.attributes.friendly_name) || r.entity || _('Nový okruh'));
+          const sm = ih.querySelector('.tx small'); sm.textContent = r.entity ? (ns ? r.entity : r.entity + ' – ' + _('entita neexistuje')) : _('vyber entitu'); sm.className = r.entity && !ns ? 'warn' : '';
           this._emit();
         }));
       return it;
@@ -3538,7 +3837,7 @@
   if (!customElements.get('igy-circuits-card')) customElements.define('igy-circuits-card', HomeCircuitsCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-circuits-card'))
-    window.customCards.push({ type: 'igy-circuits-card', name: 'Igy Circuits Card', description: 'Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.', preview: true });
+    window.customCards.push({ type: 'igy-circuits-card', name: 'Igy Circuits Card', description: _('Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.'), preview: true });
   console.info('%c IGY-CIRCUITS-CARD %c ' + VERSION + ' ', 'background:#34d399;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -3571,6 +3870,56 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Výkon": "Power",
+    "Napätie": "Voltage",
+    "Prúd": "Current",
+    "Δ článkov": "Cell Δ",
+    "Teplota": "Temp.",
+    "Batéria": "Battery",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "zapnutý": "on",
+    "vypnutý": "off",
+    "nabíja": "charging",
+    "vybíja": "discharging",
+    "stojí": "idle",
+    "vydrží": "lasts",
+    "vyrovnáva články pri vybíjaní": "balancing cells (discharge balancer)",
+    "vyrovnáva články pri nabíjaní": "balancing cells (charge balancer)",
+    "vyrovnáva články": "balancing cells",
+    "{0} cyklov": "{0} cycles",
+    "Súčet BMS": "BMS total",
+    "rozdiel voči {0}": "difference vs {0}",
+    "meraču": "meter",
+    "Nastav hlavný merač a BMS v nastaveniach karty.": "Set the main meter and BMS in the card settings.",
+    "Hlavný merač (celá batéria)": "Main meter (whole battery)",
+    "Jednotlivé BMS": "Individual BMS",
+    "Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.": "Table columns appear only for values filled in for at least one BMS.",
+    "+ Pridať BMS": "+ Add BMS",
+    "Ďalšie hodnoty": "Additional values",
+    "+ Pridať hodnotu": "+ Add value",
+    "Nadpis": "Title",
+    "Plný pásik výkonu BMS": "Full BMS power bar",
+    "Názov (napr. SmartShunt)": "Name (e.g. SmartShunt)",
+    "Výkon (+ nabíja / − vybíja)": "Power (+ charging / − discharging)",
+    "Prúd (voliteľné)": "Current (optional)",
+    "Zostávajúci čas (voliteľné)": "Time remaining (optional)",
+    "vyber senzory": "choose sensors",
+    "Názov": "Name",
+    "Popis (napr. 280 Ah)": "Description (e.g. 280 Ah)",
+    "Rozdiel článkov": "Cell voltage delta",
+    "Počet cyklov (pod názvom)": "Cycle count (under the name)",
+    "Vyrovnávanie článkov (ikona ⚖ pri názve)": "Cell balancing (⚖ icon next to the name)",
+    "Nová hodnota": "New value",
+    "vyber entitu": "choose an entity",
+    "Entita": "Entity",
+    "Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.": "Battery: main meter (SOC, power) and a table of individual BMS."
+  };
+
   const VERSION = '1.1.2';
   const G = '#30d158', R = '#ff6961', O = '#ff9f0a', MUTE = 'var(--secondary-text-color)';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -3636,10 +3985,10 @@
     static getConfigElement() { return document.createElement('igy-battery-card-editor'); }
     static getStubConfig(hass) {
       const st = hass ? hass.states : {}, f = (re) => Object.keys(st).find((id) => re.test(id));
-      return { title: 'Batéria', main: { soc: f(/^sensor\..*battery.*soc|^sensor\..*_soc/) || '', power: f(/^sensor\..*battery.*power/) || '' }, packs: [] };
+      return { title: _('Batéria'), main: { soc: f(/^sensor\..*battery.*soc|^sensor\..*_soc/) || '', power: f(/^sensor\..*battery.*power/) || '' }, packs: [] };
     }
-    setConfig(c) { if (!c) throw new Error('Chybná konfigurácia.'); this._cfg = normalize(c); this._sig = ''; if (this._hass) this._render(); }
-    set hass(h) { this._hass = h; if (this._cfg) this._render(); }
+    setConfig(c) { if (!c) throw new Error(_('Chybná konfigurácia.')); this._cfg = normalize(c); this._sig = ''; if (this._hass) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; if (this._cfg) this._render(); }
     getCardSize() { return 3 + (this._cfg ? this._cfg.packs.length : 0); }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
@@ -3656,7 +4005,7 @@
     _dc(d) { const t = this._cfg.delta_warn || [0.02, 0.05]; return d == null ? MUTE : d < t[0] ? G : d < t[1] ? O : R; }
     _state(id) {
       const s = this._s(id); if (!s) return '–';
-      if (s.state === 'on') return 'zapnutý'; if (s.state === 'off') return 'vypnutý';
+      if (s.state === 'on') return _('zapnutý'); if (s.state === 'off') return _('vypnutý');
       try { if (this._hass.formatEntityState) return this._hass.formatEntityState(s); } catch (_) { }
       const u = s.attributes.unit_of_measurement; return s.state + (u ? ' ' + u : '');
     }
@@ -3678,13 +4027,13 @@
           const el = e.target.closest('[data-more]'); if (el && el.dataset.more) this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: el.dataset.more }, bubbles: true, composed: true }));
         });
       }
-      let h = `<div class="hl">${BAT}<span>${esc(c.title || 'Batéria')}</span></div>`;
+      let h = `<div class="hl">${BAT}<span>${esc(c.title || _('Batéria'))}</span></div>`;
       // hlavný merač
       if (m.soc || m.power) {
         const soc = this._n(m.soc), pw = this._w(m.power), v = this._V(m.voltage), a = this._n(m.current), tt = m.time ? this._dur(m.time) : null;
-        const state = pw == null ? '' : pw > 20 ? 'nabíja' : pw < -20 ? 'vybíja' : 'stojí';
+        const state = pw == null ? '' : pw > 20 ? _('nabíja') : pw < -20 ? _('vybíja') : _('stojí');
         h += `<div class="box main"><div class="m1"><div class="soc" data-more="${esc(m.soc || '')}">${soc == null ? '–' : Math.round(soc)}<small>%</small></div>`
-          + `<div class="pw" data-more="${esc(m.power || '')}"><b style="color:${this._pc(pw)}">${this._fw(pw)}</b><small>${state}${tt ? (pw < -20 ? ' · vydrží ' : ' · ') + tt : ''}</small></div></div>`
+          + `<div class="pw" data-more="${esc(m.power || '')}"><b style="color:${this._pc(pw)}">${this._fw(pw)}</b><small>${state}${tt ? (pw < -20 ? ' · ' + _('vydrží') + ' ' : ' · ') + tt : ''}</small></div></div>`
           + `<div class="sb${pw != null && pw > 20 ? ' chg' : ''}" data-more="${esc(m.soc || '')}"><i style="width:${Math.max(0, Math.min(100, soc || 0)).toFixed(1)}%;background-color:${this._sc(soc)}"></i></div>`
           + `<div class="m2">${v != null ? `<span data-more="${esc(m.voltage)}"><b>${this._f(v, 2)}</b> V</span>` : ''}${a != null ? `<span data-more="${esc(m.current)}"><b>${this._f(a, 1)}</b> A</span>` : ''}<span class="src">${esc(m.name || '')}</span></div></div>`;
       }
@@ -3692,7 +4041,7 @@
       if (c.packs.length) {
         const cols = COLS.filter((x) => c.packs.some((p) => p[x.k]));
         const pmax = +c.pack_max || 5000;
-        h += `<div class="box" style="--cols:${cols.map((x) => x.w).join(' ')}"><div class="th"><div>BMS</div>${cols.map((x) => `<span>${x.t}</span>`).join('')}</div>`;
+        h += `<div class="box" style="--cols:${cols.map((x) => x.w).join(' ')}"><div class="th"><div>BMS</div>${cols.map((x) => `<span>${_(x.t)}</span>`).join('')}</div>`;
         let sum = 0, any = false;
         c.packs.forEach((p, i) => {
           const cell = (x) => {
@@ -3712,20 +4061,20 @@
           // druhý riadok: popis, cykly, vyrovnávanie článkov
           const cy = this._n(p.cycles), bs = this._s(p.balancing), bv = bs ? (bs.state === 'on' ? 1 : parseFloat(bs.state)) : NaN, bal = !isNaN(bv) && bv > 0;
           // JK BMS (syssi/esphome-jk-bms): 0 = vypnuté, 1 = vyrovnáva pri nabíjaní, 2 = pri vybíjaní
-          const balT = bv === 2 ? 'vyrovnáva články pri vybíjaní' : bv === 1 ? 'vyrovnáva články pri nabíjaní' : 'vyrovnáva články';
-          const sub = [p.info ? esc(p.info) : '', cy != null ? Math.round(cy) + ' cyklov' : ''].filter(Boolean).join(' · ');
+          const balT = bv === 2 ? _('vyrovnáva články pri vybíjaní') : bv === 1 ? _('vyrovnáva články pri nabíjaní') : _('vyrovnáva články');
+          const sub = [p.info ? esc(p.info) : '', cy != null ? _('{0} cyklov', Math.round(cy)) : ''].filter(Boolean).join(' · ');
           h += `<div class="tr" data-more="${esc(p.power || p.soc || '')}"><div class="n">${esc(p.name || 'BMS ' + (i + 1))}${bal ? ` <span class="bal" title="${balT}">⚖</span>` : ''}${sub ? `<small>${sub}</small>` : ''}</div>${cols.map(cell).join('')}</div>`;
         });
         if (any && c.packs.length > 1) {
           const mw = this._w(m.power);
-          h += `<div class="sum"><span>Súčet BMS <b style="color:${this._pc(sum)}">${this._fw(sum).replace(/<\/?small>/g, ' ')}</b></span>${mw != null ? `<span>rozdiel voči ${esc(m.name || 'meraču')} <b>${this._fw(sum - mw).replace(/<\/?small>/g, ' ')}</b></span>` : ''}</div>`;
+          h += `<div class="sum"><span>${_('Súčet BMS')} <b style="color:${this._pc(sum)}">${this._fw(sum).replace(/<\/?small>/g, ' ')}</b></span>${mw != null ? `<span>${_('rozdiel voči {0}', esc(m.name || _('meraču')))} <b>${this._fw(sum - mw).replace(/<\/?small>/g, ' ')}</b></span>` : ''}</div>`;
         }
         h += '</div>';
       }
       if (c.extras.length) {
         h += `<div class="box ex">${c.extras.map((x) => { const s = this._s(x.entity); return `<div data-more="${esc(x.entity)}">${esc(x.name || (s && s.attributes.friendly_name) || x.entity)}<b>${esc(this._state(x.entity))}</b></div>`; }).join('')}</div>`;
       }
-      if (!m.soc && !m.power && !c.packs.length && !c.extras.length) h += '<div class="empty">Nastav hlavný merač a BMS v nastaveniach karty.</div>';
+      if (!m.soc && !m.power && !c.packs.length && !c.extras.length) h += '<div class="empty">' + _('Nastav hlavný merač a BMS v nastaveniach karty.') + '</div>';
       const box = this.shadowRoot.getElementById('c'); if (box.__h !== h) { box.__h = h; box.innerHTML = h; }
     }
   }
@@ -3758,7 +4107,7 @@
 
   class HomeBatteryCardEditor extends HTMLElement {
     setConfig(config) { const c = normalize(config); if (this._last && JSON.stringify(c) === this._last) return; this._cfg = c; this._last = JSON.stringify(c); if (this._hass) this._build(); }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-battery-card' }, this._cfg)));
       if (!c.packs.length) delete c.packs; if (!c.extras.length) delete c.extras;
@@ -3774,29 +4123,29 @@
     _set(o, v, keys) { keys.forEach((k) => { if (v[k] !== '' && v[k] != null && v[k] !== false) o[k] = v[k]; else delete o[k]; }); }
     _build() {
       const c = this._cfg, open = this._open || (this._open = new Set());
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Hlavný merač (celá batéria)</div><div id="main"></div>
-        <div class="sec">Jednotlivé BMS</div><div class="hint">Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.</div><div class="items" id="packs"></div><button class="btn" id="addp">+ Pridať BMS</button>
-        <div class="sec">Ďalšie hodnoty</div><div class="items" id="extras"></div><button class="btn" id="adde">+ Pridať hodnotu</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Hlavný merač (celá batéria)')}</div><div id="main"></div>
+        <div class="sec">${_('Jednotlivé BMS')}</div><div class="hint">${_('Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.')}</div><div class="items" id="packs"></div><button class="btn" id="addp">${_('+ Pridať BMS')}</button>
+        <div class="sec">${_('Ďalšie hodnoty')}</div><div class="items" id="extras"></div><button class="btn" id="adde">${_('+ Pridať hodnotu')}</button></div>`;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', pack_max: c.pack_max || 5000 },
         [{ name: 'title', selector: { text: {} } }, { name: 'pack_max', selector: { number: { min: 500, max: 30000, step: 100, mode: 'box', unit_of_measurement: 'W' } } }],
-        { title: 'Nadpis', pack_max: 'Plný pásik výkonu BMS' }, null, (v) => { this._set(c, v, ['title']); if (v.pack_max && +v.pack_max !== 5000) c.pack_max = +v.pack_max; else delete c.pack_max; this._emit(); }));
+        { title: _('Nadpis'), pack_max: _('Plný pásik výkonu BMS') }, null, (v) => { this._set(c, v, ['title']); if (v.pack_max && +v.pack_max !== 5000) c.pack_max = +v.pack_max; else delete c.pack_max; this._emit(); }));
       const mk = ['name', 'soc', 'power', 'voltage', 'current', 'time'];
       this.querySelector('#main').appendChild(this._form(Object.assign({}, ...mk.map((k) => ({ [k]: c.main[k] || '' }))),
         [{ name: 'name', selector: { text: {} } }, ENT('soc'), ENT('power'), ENT('voltage'), ENT('current'), ENT('time')],
-        { name: 'Názov (napr. SmartShunt)', soc: 'SOC', power: 'Výkon (+ nabíja / − vybíja)', voltage: 'Napätie', current: 'Prúd (voliteľné)', time: 'Zostávajúci čas (voliteľné)' }, null,
+        { name: _('Názov (napr. SmartShunt)'), soc: 'SOC', power: _('Výkon (+ nabíja / − vybíja)'), voltage: _('Napätie'), current: _('Prúd (voliteľné)'), time: _('Zostávajúci čas (voliteľné)') }, null,
         (v) => { this._set(c.main, v, mk); this._emit(); }));
       const pk = ['name', 'info', 'power', 'soc', 'voltage', 'current', 'delta', 'temp', 'cycles', 'balancing'];
       const pb = this.querySelector('#packs');
-      c.packs.forEach((p, i) => pb.appendChild(this._item(c.packs, i, p.name || 'BMS ' + (i + 1), [p.info, p.power].filter(Boolean).join(' · ') || 'vyber senzory', 'p' + i,
+      c.packs.forEach((p, i) => pb.appendChild(this._item(c.packs, i, p.name || 'BMS ' + (i + 1), [p.info, p.power].filter(Boolean).join(' · ') || _('vyber senzory'), 'p' + i,
         Object.assign({}, ...pk.map((k) => ({ [k]: p[k] || '' }))),
         [{ name: 'name', selector: { text: {} } }, { name: 'info', selector: { text: {} } }, ENT('power'), ENT('soc'), ENT('voltage'), ENT('current'), ENT('delta'), ENT('temp'), ENT('cycles'), ENT('balancing')],
-        { name: 'Názov', info: 'Popis (napr. 280 Ah)', power: 'Výkon', soc: 'SOC', voltage: 'Napätie', current: 'Prúd', delta: 'Rozdiel článkov', temp: 'Teplota', cycles: 'Počet cyklov (pod názvom)', balancing: 'Vyrovnávanie článkov (ikona ⚖ pri názve)' },
+        { name: _('Názov'), info: _('Popis (napr. 280 Ah)'), power: _('Výkon'), soc: 'SOC', voltage: _('Napätie'), current: _('Prúd'), delta: _('Rozdiel článkov'), temp: _('Teplota'), cycles: _('Počet cyklov (pod názvom)'), balancing: _('Vyrovnávanie článkov (ikona ⚖ pri názve)') },
         (v, it) => { this._set(p, v, pk); it.querySelector('.tx b').textContent = p.name || 'BMS ' + (i + 1); this._emit(); })));
       this.querySelector('#addp').onclick = () => { c.packs.push({ name: 'BMS ' + (c.packs.length + 1) }); open.add('p' + (c.packs.length - 1)); this._emit(); this._build(); };
       const eb = this.querySelector('#extras');
-      c.extras.forEach((x, i) => { const s = x.entity && this._hass.states[x.entity]; eb.appendChild(this._item(c.extras, i, x.name || (s && s.attributes.friendly_name) || x.entity || 'Nová hodnota', x.entity || 'vyber entitu', 'e' + i,
-        { entity: x.entity || '', name: x.name || '' }, [ENT('entity'), { name: 'name', selector: { text: {} } }], { entity: 'Entita', name: 'Názov' },
-        (v, it) => { this._set(x, v, ['entity', 'name']); it.querySelector('.tx b').textContent = x.name || x.entity || 'Nová hodnota'; this._emit(); })); });
+      c.extras.forEach((x, i) => { const s = x.entity && this._hass.states[x.entity]; eb.appendChild(this._item(c.extras, i, x.name || (s && s.attributes.friendly_name) || x.entity || _('Nová hodnota'), x.entity || _('vyber entitu'), 'e' + i,
+        { entity: x.entity || '', name: x.name || '' }, [ENT('entity'), { name: 'name', selector: { text: {} } }], { entity: _('Entita'), name: _('Názov') },
+        (v, it) => { this._set(x, v, ['entity', 'name']); it.querySelector('.tx b').textContent = x.name || x.entity || _('Nová hodnota'); this._emit(); })); });
       this.querySelector('#adde').onclick = () => { c.extras.push({}); open.add('e' + (c.extras.length - 1)); this._emit(); this._build(); };
     }
     _item(arr, i, title, sub, key, data, schema, L, cb) {
@@ -3817,7 +4166,7 @@
   if (!customElements.get('igy-battery-card')) customElements.define('igy-battery-card', HomeBatteryCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-battery-card'))
-    window.customCards.push({ type: 'igy-battery-card', name: 'Igy Battery Card', description: 'Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.', preview: true });
+    window.customCards.push({ type: 'igy-battery-card', name: 'Igy Battery Card', description: _('Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.'), preview: true });
   console.info('%c IGY-BATTERY-CARD %c ' + VERSION + ' ', 'background:#30d158;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
@@ -3850,6 +4199,44 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Zobrazenie": "Display",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "Pridaj kamery v nastaveniach karty (názvy streamov v go2rtc).": "Add cameras in the card settings (go2rtc stream names).",
+    "Čakám na kartu <b>WebRTC Camera</b> (AlexxIT) – nainštaluj ju cez HACS.": "Waiting for the <b>WebRTC Camera</b> card (AlexxIT) – install it from HACS.",
+    "NAČÍTAVAM PLNÉ ROZLÍŠENIE…": "LOADING FULL RESOLUTION…",
+    "ZNÍŽENÉ ROZLÍŠENIE": "REDUCED RESOLUTION",
+    "WebRTC, inak MSE": "WebRTC, fallback MSE",
+    "Len WebRTC": "WebRTC only",
+    "Len MSE": "MSE only",
+    "Všetko (WebRTC → MJPEG)": "All (WebRTC → MJPEG)",
+    "Karta potrebuje integráciu WebRTC Camera (AlexxIT) z HACS.": "This card needs the WebRTC Camera integration (AlexxIT) from HACS.",
+    "Kamery": "Cameras",
+    "Názov = stream v go2rtc. Malý stream do prehľadu je predvolene &lt;názov&gt;_sub.": "Name = go2rtc stream. The small overview stream defaults to &lt;name&gt;_sub.",
+    "+ Pridať kameru": "+ Add camera",
+    "Stĺpcov": "Columns",
+    "Čakať na plné rozlíšenie": "Wait for full resolution",
+    "V prehľade malý stream (_sub)": "Small stream in the overview (_sub)",
+    "Zobraziť názov kamery": "Show camera name",
+    "Režim v prehľade": "Overview mode",
+    "Režim na celej obrazovke": "Full-screen mode",
+    "Snímka kým sa načíta video (voliteľné)": "Still image while the video loads (optional)",
+    "Napr. http://frigate:5000/api/{name}/latest.jpg?h=480 – {name} sa nahradí názvom kamery.": "E.g. http://frigate:5000/api/{name}/latest.jpg?h=480 – {name} is replaced by the camera name.",
+    "Nová kamera": "New camera",
+    "zadaj názov streamu": "enter the stream name",
+    "Názov (stream v go2rtc)": "Name (go2rtc stream)",
+    "Stream v plnom rozlíšení (voliteľné)": "Full-resolution stream (optional)",
+    "Malý stream do prehľadu (voliteľné)": "Small overview stream (optional)",
+    "Pomer strán (napr. 16/9, voliteľné)": "Aspect ratio (e.g. 16/9, optional)",
+    "Prázdne = rovnaký ako názov.": "Empty = same as the name.",
+    "Prázdne = <názov>_sub.": "Empty = <name>_sub.",
+    "Kamery cez WebRTC (go2rtc), ťuknutím na celú obrazovku so zoomom. Potrebuje WebRTC Camera z HACS.": "Cameras via WebRTC (go2rtc), tap for full screen with zoom. Needs WebRTC Camera from HACS."
+  };
+
   const VERSION = '1.0.0';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
 
@@ -3865,12 +4252,12 @@
     static getConfigElement() { return document.createElement('igy-camera-card-editor'); }
     static getStubConfig() { return { cameras: [] }; }
     setConfig(config) {
-      if (!config) throw new Error('Chybná konfigurácia.');
+      if (!config) throw new Error(_('Chybná konfigurácia.'));
       this._config = Object.assign({ mode: 'webrtc,mse', full_mode: 'webrtc,mse', sub: true, columns: 1, full_timeout: 12, poster: '' }, config, { cameras: cams(config.cameras) });
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
       this._build();
     }
-    set hass(hass) { this._hass = hass; this._allCams().forEach((el) => { el.hass = hass; }); }
+    set hass(hass) { setLang(hass); this._hass = hass; this._allCams().forEach((el) => { el.hass = hass; }); }
     getCardSize() { const c = this._config || {}; return Math.max(1, Math.ceil((c.cameras || []).length / (c.columns || 1))) * 4; }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
     disconnectedCallback() { this._close(); }
@@ -3909,9 +4296,9 @@
         .lbl { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 99px; font: 500 11px/1.6 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.45); pointer-events: none; }
         .msg { padding: 16px; font-size: 14px; color: var(--secondary-text-color); background: var(--ha-card-background, var(--card-background-color)); border-radius: var(--ha-card-border-radius, 12px); line-height: 1.45; }
       </style>`;
-      if (!c.cameras.length) { root.innerHTML = css + '<div class="msg">Pridaj kamery v nastaveniach karty (názvy streamov v go2rtc).</div>'; return; }
+      if (!c.cameras.length) { root.innerHTML = css + '<div class="msg">' + _('Pridaj kamery v nastaveniach karty (názvy streamov v go2rtc).') + '</div>'; return; }
       if (!customElements.get('webrtc-camera')) {
-        root.innerHTML = css + '<div class="msg">Čakám na kartu <b>WebRTC Camera</b> (AlexxIT) – nainštaluj ju cez HACS.</div>';
+        root.innerHTML = css + '<div class="msg">' + _('Čakám na kartu <b>WebRTC Camera</b> (AlexxIT) – nainštaluj ju cez HACS.') + '</div>';
         await customElements.whenDefined('webrtc-camera');
         if (gen !== this._gen) return;
       }
@@ -3948,7 +4335,7 @@
       stage.appendChild(high);
       const tag = document.createElement('div');
       tag.style.cssText = 'position:absolute;top:16px;left:16px;padding:6px 12px;border-radius:999px;font:500 13px system-ui,sans-serif;letter-spacing:.06em;color:#cbd5e1;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);pointer-events:none;';
-      tag.textContent = low ? 'NAČÍTAVAM PLNÉ ROZLÍŠENIE…' : '';
+      tag.textContent = low ? _('NAČÍTAVAM PLNÉ ROZLÍŠENIE…') : '';
       if (!low) tag.style.display = 'none';
       ov.appendChild(tag);
       const x = document.createElement('div');
@@ -3968,7 +4355,7 @@
             high.style.opacity = '1'; low.remove(); tag.style.display = 'none';
           } else if (Date.now() - t0 > (+c.full_timeout || 12) * 1000) {
             clearInterval(this._poll); this._poll = null;
-            high.remove(); tag.textContent = 'ZNÍŽENÉ ROZLÍŠENIE';
+            high.remove(); tag.textContent = _('ZNÍŽENÉ ROZLÍŠENIE');
           }
         }, 250);
       }
@@ -4051,7 +4438,7 @@
     dn: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>',
     del: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9m0 5h2v9H9V8m4 0h2v9h-2V8z"/></svg>'
   };
-  const MODES = [{ value: 'webrtc,mse', label: 'WebRTC, inak MSE' }, { value: 'webrtc', label: 'Len WebRTC' }, { value: 'mse', label: 'Len MSE' }, { value: 'webrtc,mse,hls,mjpeg', label: 'Všetko (WebRTC → MJPEG)' }];
+  const MODES = () => [{ value: 'webrtc,mse', label: _('WebRTC, inak MSE') }, { value: 'webrtc', label: _('Len WebRTC') }, { value: 'mse', label: _('Len MSE') }, { value: 'webrtc,mse,hls,mjpeg', label: _('Všetko (WebRTC → MJPEG)') }];
   const DEF = { mode: 'webrtc,mse', full_mode: 'webrtc,mse', sub: true, columns: 1, full_timeout: 12 };
 
   class IgyCameraCardEditor extends HTMLElement {
@@ -4062,7 +4449,7 @@
       const sig = JSON.stringify(c); if (sig === this._last) return;
       this._cfg = c; this._last = sig; if (this._hass) this._build();
     }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-camera-card' }, this._cfg)));
       // kamera len s názvom → jednoduchý zápis
@@ -4079,10 +4466,10 @@
     _build() {
       const c = this._cfg, open = this._open || (this._open = new Set());
       this.innerHTML = `<style>${EDCSS}</style><div class="ed">
-        ${customElements.get('webrtc-camera') ? '' : '<div class="warn">Karta potrebuje integráciu WebRTC Camera (AlexxIT) z HACS.</div>'}
-        <div class="sec">Kamery</div><div class="hint">Názov = stream v go2rtc. Malý stream do prehľadu je predvolene &lt;názov&gt;_sub.</div>
-        <div class="items" id="items"></div><button class="btn" id="add">+ Pridať kameru</button>
-        <div class="sec">Zobrazenie</div><div id="opt"></div></div>`;
+        ${customElements.get('webrtc-camera') ? '' : '<div class="warn">' + _('Karta potrebuje integráciu WebRTC Camera (AlexxIT) z HACS.') + '</div>'}
+        <div class="sec">${_('Kamery')}</div><div class="hint">${_('Názov = stream v go2rtc. Malý stream do prehľadu je predvolene &lt;názov&gt;_sub.')}</div>
+        <div class="items" id="items"></div><button class="btn" id="add">${_('+ Pridať kameru')}</button>
+        <div class="sec">${_('Zobrazenie')}</div><div id="opt"></div></div>`;
       const box = this.querySelector('#items');
       c.cameras.forEach((cam, i) => box.appendChild(this._item(cam, i, open.has(i))));
       this.querySelector('#add').onclick = () => { c.cameras.push({ name: '' }); open.add(c.cameras.length - 1); this._emit(); this._build(); };
@@ -4091,10 +4478,10 @@
       this.querySelector('#opt').appendChild(this._form(data, [
         { type: 'grid', name: '', schema: [{ name: 'columns', selector: { number: { min: 1, max: 4, mode: 'box' } } }, { name: 'full_timeout', selector: { number: { min: 3, max: 60, mode: 'box', unit_of_measurement: 's' } } }] },
         { name: 'sub', selector: { boolean: {} } }, { name: 'show_name', selector: { boolean: {} } },
-        { name: 'mode', selector: { select: { mode: 'dropdown', options: MODES } } }, { name: 'full_mode', selector: { select: { mode: 'dropdown', options: MODES } } },
+        { name: 'mode', selector: { select: { mode: 'dropdown', options: MODES() } } }, { name: 'full_mode', selector: { select: { mode: 'dropdown', options: MODES() } } },
         { name: 'poster', selector: { text: {} } }],
-        { columns: 'Stĺpcov', full_timeout: 'Čakať na plné rozlíšenie', sub: 'V prehľade malý stream (_sub)', show_name: 'Zobraziť názov kamery', mode: 'Režim v prehľade', full_mode: 'Režim na celej obrazovke', poster: 'Snímka kým sa načíta video (voliteľné)' },
-        { poster: 'Napr. http://frigate:5000/api/{name}/latest.jpg?h=480 – {name} sa nahradí názvom kamery.' },
+        { columns: _('Stĺpcov'), full_timeout: _('Čakať na plné rozlíšenie'), sub: _('V prehľade malý stream (_sub)'), show_name: _('Zobraziť názov kamery'), mode: _('Režim v prehľade'), full_mode: _('Režim na celej obrazovke'), poster: _('Snímka kým sa načíta video (voliteľné)') },
+        { poster: _('Napr. http://frigate:5000/api/{name}/latest.jpg?h=480 – {name} sa nahradí názvom kamery.') },
         (v) => {
           keys.forEach((k) => { const d = DEF[k] != null ? DEF[k] : (k === 'show_name' ? false : ''); if (v[k] === '' || v[k] == null || v[k] === d) delete c[k]; else c[k] = v[k]; });
           this._emit();
@@ -4103,7 +4490,7 @@
     _item(cam, i, isOpen) {
       const c = this._cfg, it = document.createElement('div'); it.className = 'it' + (isOpen ? ' open' : '');
       it.innerHTML = `<div class="ih"><span class="tx"><b></b><small></small></span><button class="ib up">${ICO.up}</button><button class="ib dn">${ICO.dn}</button><button class="ib exp">${ICO.down}</button><button class="ib del">${ICO.del}</button></div><div class="body"></div>`;
-      const setTx = () => { it.querySelector('.tx b').textContent = cam.name || 'Nová kamera'; it.querySelector('.tx small').textContent = cam.name ? `${cam.main || cam.name} · ${cam.sub || cam.name + '_sub'}${cam.aspect ? ' · ' + cam.aspect : ''}` : 'zadaj názov streamu'; };
+      const setTx = () => { it.querySelector('.tx b').textContent = cam.name || _('Nová kamera'); it.querySelector('.tx small').textContent = cam.name ? `${cam.main || cam.name} · ${cam.sub || cam.name + '_sub'}${cam.aspect ? ' · ' + cam.aspect : ''}` : _('zadaj názov streamu'); };
       setTx();
       const tog = () => { it.classList.toggle('open'); if (it.classList.contains('open')) this._open.add(i); else this._open.delete(i); };
       it.querySelector('.tx').onclick = tog; it.querySelector('.exp').onclick = tog;
@@ -4112,8 +4499,8 @@
       it.querySelector('.del').onclick = () => { c.cameras.splice(i, 1); this._open = new Set(); this._emit(); this._build(); };
       it.querySelector('.body').appendChild(this._form({ name: cam.name || '', main: cam.main || '', sub: cam.sub || '', aspect: cam.aspect || '' },
         [{ name: 'name', selector: { text: {} } }, { name: 'main', selector: { text: {} } }, { name: 'sub', selector: { text: {} } }, { name: 'aspect', selector: { text: {} } }],
-        { name: 'Názov (stream v go2rtc)', main: 'Stream v plnom rozlíšení (voliteľné)', sub: 'Malý stream do prehľadu (voliteľné)', aspect: 'Pomer strán (napr. 16/9, voliteľné)' },
-        { main: 'Prázdne = rovnaký ako názov.', sub: 'Prázdne = <názov>_sub.' },
+        { name: _('Názov (stream v go2rtc)'), main: _('Stream v plnom rozlíšení (voliteľné)'), sub: _('Malý stream do prehľadu (voliteľné)'), aspect: _('Pomer strán (napr. 16/9, voliteľné)') },
+        { main: _('Prázdne = rovnaký ako názov.'), sub: _('Prázdne = <názov>_sub.') },
         (v) => { ['name', 'main', 'sub', 'aspect'].forEach((k) => { if (v[k]) cam[k] = v[k]; else delete cam[k]; }); setTx(); this._emit(); }));
       return it;
     }
@@ -4123,8 +4510,8 @@
   if (!customElements.get('igy-camera-card')) customElements.define('igy-camera-card', IgyCameraCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-camera-card'))
-    window.customCards.push({ type: 'igy-camera-card', name: 'Igy Camera Card', description: 'Kamery cez WebRTC (go2rtc), ťuknutím na celú obrazovku so zoomom. Potrebuje WebRTC Camera z HACS.', preview: false });
+    window.customCards.push({ type: 'igy-camera-card', name: 'Igy Camera Card', description: _('Kamery cez WebRTC (go2rtc), ťuknutím na celú obrazovku so zoomom. Potrebuje WebRTC Camera z HACS.'), preview: false });
   console.info('%c IGY-CAMERA-CARD %c ' + VERSION + ' ', 'background:#64d2ff;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
 
-console.info('%c IGY-CARDS %c 1.2.0 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
+console.info('%c IGY-CARDS %c 1.3.0 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');

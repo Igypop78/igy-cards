@@ -27,9 +27,105 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Strecha": "Roof",
+    "Prístrešok": "Carport",
+    "Solár": "Solar",
+    "Batéria": "Battery",
+    "Sieť": "Grid",
+    "Plyn": "Gas",
+    "Voda": "Water",
+    "TUV": "Hot water",
+    "Energia": "Energy",
+    "Tento týždeň": "This week",
+    "Minulý týždeň": "Last week",
+    "Dnes": "Today",
+    "Včera": "Yesterday",
+    "ešte": "still",
+    "dnes": "today",
+    "Prehľad": "Overview",
+    "Deň": "Day",
+    "Týždeň": "Week",
+    "Mesiac": "Month",
+    "Rok": "Year",
+    "Načítavam…": "Loading…",
+    "Dáta z Energy dashboardu sa nepodarilo načítať.": "Could not load data from the Energy dashboard.",
+    "V Energy dashboarde nie sú nastavené žiadne zdroje.": "No sources are configured in the Energy dashboard.",
+    "spotreba domu": "home consumption",
+    "bilancia domu": "home balance",
+    "solár": "solar",
+    "batéria": "battery",
+    "sieť": "grid",
+    "Výroba FVE": "Solar production",
+    "Predaj do siete": "Export to grid",
+    "Nákup zo siete": "Import from grid",
+    "Štatistiky pre Prehľad (prázdne = z Energy dashboardu)": "Overview statistics (empty = from the Energy dashboard)",
+    "Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda": "Energy overview: consumption and its sources, solar, battery, grid, gas, water",
+    "Všeobecné": "General",
+    "Teplá úžitková voda": "Hot water",
+    "Nadpis karty": "Card title",
+    "Spotreba domu – výkon": "Home consumption – power",
+    "Mierka pruhu spotreby": "Consumption bar scale",
+    "Prehľad (deň / týždeň / mesiac / rok)": "Overview (day / week / month / year)",
+    "Dnešné súčty v dlaždiciach": "Today’s totals in the tiles",
+    "Výkon FVE spolu": "Total PV power",
+    "Mierka FVE": "PV scale",
+    "PV1 – výkon": "PV1 – power",
+    "PV1 – názov": "PV1 – name",
+    "PV2 – výkon": "PV2 – power",
+    "PV2 – názov": "PV2 – name",
+    "Predpoveď – zostávajúca výroba dnes": "Forecast – remaining production today",
+    "Nabitie (SOC %)": "State of charge (SOC %)",
+    "Výkon batérie": "Battery power",
+    "Otočiť znamienko výkonu": "Invert power sign",
+    "Mierka výkonu batérie": "Battery power scale",
+    "Výkon siete": "Grid power",
+    "Mierka siete": "Grid scale",
+    "Plyn – okamžitý výkon / prietok": "Gas – current power / flow",
+    "Mierka plynu": "Gas scale",
+    "Stav plynomeru": "Gas meter reading",
+    "Voda – prietok": "Water – flow",
+    "Mierka vody": "Water scale",
+    "Stav vodomeru": "Water meter reading",
+    "Teplota v zásobníku": "Tank temperature",
+    "Studená (modrá)": "Cold (blue)",
+    "Horúca (červená)": "Hot (red)",
+    "Výroba FVE spolu (kWh)": "Total PV production (kWh)",
+    "Výroba PV1 (kWh)": "PV1 production (kWh)",
+    "Výroba PV2 (kWh)": "PV2 production (kWh)",
+    "Energia do batérie (kWh)": "Energy into battery (kWh)",
+    "Energia z batérie (kWh)": "Energy from battery (kWh)",
+    "Odber zo siete (kWh)": "Grid import (kWh)",
+    "Náklad na odber": "Import cost",
+    "Dodávka do siete (kWh)": "Grid export (kWh)",
+    "Príjem z dodávky": "Export compensation",
+    "Spotreba plynu": "Gas consumption",
+    "Náklad na plyn": "Gas cost",
+    "Spotreba vody": "Water consumption",
+    "Náklad na vodu": "Water cost",
+    "W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.": "W or kW. Without it, consumption is calculated from solar, battery and grid.",
+    "Pri tejto hodnote je pruh plný.": "The bar is full at this value.",
+    "Rozbaľovací prehľad dole, dáta z Energy dashboardu.": "Collapsible overview at the bottom, data from the Energy dashboard.",
+    "Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.": "E.g. “today 21.5 kWh” under solar, battery and grid.",
+    "Ak chýba, sčíta sa PV1 + PV2.": "If missing, PV1 + PV2 are added up.",
+    "Voliteľné – pruh solára sa rozdelí na dve farby.": "Optional – the solar bar is split into two colors.",
+    "Napr. Solcast „forecast remaining today“ (kWh).": "E.g. Solcast “forecast remaining today” (kWh).",
+    "Karta počíta + = vybíjanie, − = nabíjanie.": "The card expects + = discharging, − = charging.",
+    "Zapni, ak senzor ukazuje + pri nabíjaní.": "Enable if the sensor shows + while charging.",
+    "Karta počíta + = odber zo siete, − = predaj.": "The card expects + = import, − = export.",
+    "Zapni, ak senzor ukazuje + pri predaji.": "Enable if the sensor shows + while exporting.",
+    "Voliteľné – zobrazí sa pod pruhom plynu.": "Optional – shown under the gas bar.",
+    "Voliteľné – zobrazí sa pod pruhom vody.": "Optional – shown under the water bar.",
+    "Voliteľné – farba pruhu podľa teploty.": "Optional – bar color follows the temperature."
+  };
+
   const VERSION = '0.7.1';
 
-  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: 'Energia', overview: true };
+  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true };
   const COL = { pv1: '#ff8a1f', pv2: '#ffc27a', sol: '#ff9f0a', bat: '#40c8e0', chg: '#30d158', dis: '#ff6961', imp: '#ff6961', exp: '#30d158', gas: '#ffd60a', wat: '#0a84ff' };
   const IC = {
     sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
@@ -52,7 +148,7 @@
       const has = (id) => hass && hass.states[id] ? id : undefined;
       const c = {
         home_power: has('sensor.home_actual_power_keep'), solar_power: has('sensor.pv_power_inverter_keep'),
-        pv1_power: has('sensor.pv1_power_inverter_keep'), pv1_name: 'Strecha', pv2_power: has('sensor.pv2_power_inverter_keep'), pv2_name: 'Prístrešok',
+        pv1_power: has('sensor.pv1_power_inverter_keep'), pv1_name: _('Strecha'), pv2_power: has('sensor.pv2_power_inverter_keep'), pv2_name: _('Prístrešok'),
         battery_soc: has('sensor.smartshunt_soc_keep'), battery_power: has('sensor.smartshunt_power_keep'), battery_invert: !!has('sensor.smartshunt_power_keep'),
         grid_power: has('sensor.em_main_power_keep'), solar_forecast: has('sensor.solcast_pv_forecast_forecast_remaining_today_keep'), tuv_temp: has('sensor.temperature_tuv_tank_keep'), gas_power: has('sensor.gas_power_keep'), water_flow: has('sensor.watermeter_flow_rate_keep'), gas_meter: has('sensor.gasmeter_helper_keep')
       };
@@ -60,7 +156,7 @@
       return c;
     }
     setConfig(c) { this._cfg = Object.assign({}, DEF, c || {}); this._built = false; this._ovIdsC = null; this._ov = null; if (this._hass && this.isConnected) { clearInterval(this._ovT); this._ovT = null; setTimeout(() => this._ovStart()); } if (this._hass) this._render(); }
-    set hass(h) { const first = !this._hass; this._hass = h; this._render(); if (first) this._ovStart(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; this._render(); if (first) this._ovStart(); }
     connectedCallback() { if (this._hass) this._ovStart(); }
     disconnectedCallback() { clearInterval(this._ovT); this._ovT = null; }
     getCardSize() { return 7; }
@@ -101,33 +197,33 @@
       const pvs = [[c.pv1_power, c.pv1_name, COL.pv1, 'pv1'], [c.pv2_power, c.pv2_name, COL.pv2, 'pv2']].filter((x) => has(x[0]));
       if (has(c.solar_power) || pvs.length) tiles.push(`
         <div class="tile" data-id="${c.solar_power || pvs[0][0]}">
-          <div class="th" style="color:${COL.sol}">${svg(IC.sun)}<span>Solár</span></div>
+          <div class="th" style="color:${COL.sol}">${svg(IC.sun)}<span>${_('Solár')}</span></div>
           <div class="tv"><b id="sol_v"></b><small id="sol_u"></small></div>
           <div class="bar st" id="sol_bar">${pvs.length ? pvs.map((x) => `<i id="${x[3]}_b" title="${esc(x[1])}" style="background:${x[2]}"></i>`).join('') : `<i id="sol_b" style="background:${COL.sol}"></i>`}</div>
           <div class="td" id="sol_d"></div>
         </div>`);
       if (has(c.battery_soc) || has(c.battery_power)) tiles.push(`
         <div class="tile" data-id="${c.battery_soc || c.battery_power}">
-          <div class="th" id="bat_h">${svg(IC.bat)}<span>Batéria</span><b class="soc" id="soc_v"></b></div>
+          <div class="th" id="bat_h">${svg(IC.bat)}<span>${_('Batéria')}</span><b class="soc" id="soc_v"></b></div>
           ${has(c.battery_power) ? `<div class="tv"><b id="bat_v"></b><small id="bat_u"></small></div><div class="bar"><i id="bat_b"></i></div>` : ''}
           <div class="td" id="bat_d"></div>
         </div>`);
       if (has(c.grid_power)) tiles.push(`
         <div class="tile" data-id="${c.grid_power}">
-          <div class="th" id="grid_h">${svg(IC.grid)}<span>Sieť</span></div>
+          <div class="th" id="grid_h">${svg(IC.grid)}<span>${_('Sieť')}</span></div>
           <div class="tv"><b id="grid_v"></b><small id="grid_u"></small></div>
           <div class="bar"><i id="grid_b"></i></div>
           <div class="td" id="grid_d"></div>
         </div>`);
       const util = [];
-      if (has(c.gas_power)) util.push(`<div class="urow" data-id="${c.gas_power}"><span class="ui" style="color:${COL.gas}">${svg(IC.gas)}</span><span class="un">Plyn</span><b id="gas_v"></b><div class="bar sm"><i id="gas_b" style="background:${COL.gas}"></i></div><small class="um" id="gas_m"></small></div>`);
-      if (has(c.water_flow)) util.push(`<div class="urow" data-id="${c.water_flow}"><span class="ui" style="color:${COL.wat}">${svg(IC.wat)}</span><span class="un">Voda</span><b id="wat_v"></b><div class="bar sm"><i id="wat_b" style="background:${COL.wat}"></i></div><small class="um" id="wat_m"></small></div>`);
-      if (has(c.tuv_temp)) util.push(`<div class="urow" data-id="${c.tuv_temp}"><span class="ui" id="tuv_i">${svg(IC.tuv)}</span><span class="un">TUV</span><b id="tuv_v"></b><div class="bar sm"><i id="tuv_b"></i></div></div>`);
+      if (has(c.gas_power)) util.push(`<div class="urow" data-id="${c.gas_power}"><span class="ui" style="color:${COL.gas}">${svg(IC.gas)}</span><span class="un">${_('Plyn')}</span><b id="gas_v"></b><div class="bar sm"><i id="gas_b" style="background:${COL.gas}"></i></div><small class="um" id="gas_m"></small></div>`);
+      if (has(c.water_flow)) util.push(`<div class="urow" data-id="${c.water_flow}"><span class="ui" style="color:${COL.wat}">${svg(IC.wat)}</span><span class="un">${_('Voda')}</span><b id="wat_v"></b><div class="bar sm"><i id="wat_b" style="background:${COL.wat}"></i></div><small class="um" id="wat_m"></small></div>`);
+      if (has(c.tuv_temp)) util.push(`<div class="urow" data-id="${c.tuv_temp}"><span class="ui" id="tuv_i">${svg(IC.tuv)}</span><span class="un">${_('TUV')}</span><b id="tuv_v"></b><div class="bar sm"><i id="tuv_b"></i></div></div>`);
       if (util.length) tiles.push(`<div class="tile util">${util.join('')}</div>`);
 
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
         <div class="hero" data-id="${c.home_power || ''}">
-          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || 'Energia')}</span><span class="live"></span></div>
+          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || _('Energia'))}</span><span class="live"></span></div>
           <div class="hv"><b id="home_v"></b><small id="home_u"></small></div>
           <div class="mix" id="mix"><i class="ms" style="background:${COL.sol}"></i><i class="mb" style="background:${COL.bat}"></i><i class="mg" style="background:${COL.imp}"></i></div>
           <div class="leg" id="leg"></div>
@@ -160,7 +256,7 @@
         const el = r.querySelector(x[0]), f = x[1] / tot * scale;
         el.style.width = (f * 100).toFixed(2) + '%'; el.style.marginRight = f > 0.004 ? '2px' : '0';
       });
-      const leg = [['Solár', m.sol, COL.sol], ['Batéria', m.bat, COL.bat], ['Sieť', m.grid, COL.imp]].filter((x) => x[1] > tot * 0.005)
+      const leg = [[_('Solár'), m.sol, COL.sol], [_('Batéria'), m.bat, COL.bat], [_('Sieť'), m.grid, COL.imp]].filter((x) => x[1] > tot * 0.005)
         .map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${Math.round(x[1] / tot * 100)} %</b></span>`).join('') || '<span>–</span>';
       if ($('leg').__h !== leg) { $('leg').__h = leg; $('leg').innerHTML = leg; }
       // solár – jeden pruh poskladaný z PV1 + PV2
@@ -258,7 +354,7 @@
       if (mode === 'week') {
         const wd = n.getDay() || 7; a = new Date(Y, n.getMonth(), n.getDate() - wd + 1 + off * 7); b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 7);
         per = 'day'; N = 7; idx = (t) => Math.round((day0(t) - a) / 86400000);
-        lab = off === 0 ? 'Tento týždeň' : off === -1 ? 'Minulý týždeň' : dm(a) + '–' + dm(new Date(b - 86400000));
+        lab = off === 0 ? _('Tento týždeň') : off === -1 ? _('Minulý týždeň') : dm(a) + '–' + dm(new Date(b - 86400000));
       } else if (mode === 'month') {
         a = new Date(Y, n.getMonth() + off, 1); b = new Date(a.getFullYear(), a.getMonth() + 1, 1);
         per = 'day'; N = Math.round((b - a) / 86400000); idx = (t) => new Date(t).getDate() - 1;
@@ -269,7 +365,7 @@
       } else {
         a = new Date(Y, n.getMonth(), n.getDate() + off); b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 1);
         per = 'hour'; N = 24; idx = (t) => new Date(t).getHours();
-        lab = off === 0 ? 'Dnes' : off === -1 ? 'Včera' : dm(a);
+        lab = off === 0 ? _('Dnes') : off === -1 ? _('Včera') : dm(a);
       }
       return { a, b, per, N, idx, lab, mode, off };
     }
@@ -330,10 +426,10 @@
       const r = this.shadowRoot, t = this._today, on = this._cfg.today !== false && t && !t.empty && !t.err;
       const set = (id, h) => { const el = r && r.getElementById(id); if (el && el.__h !== h) { el.__h = h; el.innerHTML = h; } };
       const fc = this._st(this._cfg.solar_forecast), fv = fc ? parseFloat(fc.state) * (/^Wh$/i.test(fc.attributes.unit_of_measurement || '') ? 0.001 : 1) : NaN;
-      const rest = !isNaN(fv) && fv >= 0.05 ? ` · ešte <b>~${this._kwh(fv)}</b>` : '';
-      set('sol_d', on && t.has.sol ? `dnes <b>${this._kwh(t.solT)}</b>${rest} kWh` : rest ? `ešte <b>~${this._kwh(fv)}</b> kWh` : '');
-      set('bat_d', on && (t.has.bin || t.has.bout) ? `dnes <b>+${this._kwh(t.binT)}</b> / <b>−${this._kwh(t.boutT)}</b> kWh` : '');
-      set('grid_d', on && (t.has.gin || t.has.gout) ? `dnes ↓ <b>${this._kwh(t.ginT)}</b> · ↑ <b>${this._kwh(t.goutT)}</b> kWh` : '');
+      const rest = !isNaN(fv) && fv >= 0.05 ? ` · ${_('ešte')} <b>~${this._kwh(fv)}</b>` : '';
+      set('sol_d', on && t.has.sol ? `${_('dnes')} <b>${this._kwh(t.solT)}</b>${rest} kWh` : rest ? `${_('ešte')} <b>~${this._kwh(fv)}</b> kWh` : '');
+      set('bat_d', on && (t.has.bin || t.has.bout) ? `${_('dnes')} <b>+${this._kwh(t.binT)}</b> / <b>−${this._kwh(t.boutT)}</b> kWh` : '');
+      set('grid_d', on && (t.has.gin || t.has.gout) ? `${_('dnes')} ↓ <b>${this._kwh(t.ginT)}</b> · ↑ <b>${this._kwh(t.goutT)}</b> kWh` : '');
     }
     _kwh(v) { const a = Math.abs(v || 0); return this._nf(a, a < 100 ? 1 : 0); }
     _eur(v, sign) {
@@ -348,33 +444,33 @@
       const d = this._ov, open = this._ovOpen, mode = this._ovMode || 'day', R = COL.imp, G = COL.exp;
       const r = this._range(mode, this._ovOff || 0);   // popisky vždy podľa výberu, dáta ostávajú do načítania nových
       const sum = d && d.anyCost ? `<span class="sum" style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</span>` : '<span class="sum"></span>';
-      let h = `<div class="ovh" data-ovt="1"><span class="hi">${svg(IC.chart)}</span><span>Prehľad · ${esc(r.lab.toLowerCase())}</span>${sum}<span class="chev">${svg('M6 9l6 6 6-6')}</span></div>`;
+      let h = `<div class="ovh" data-ovt="1"><span class="hi">${svg(IC.chart)}</span><span>${_('Prehľad')} · ${esc(r.lab.toLowerCase())}</span>${sum}<span class="chev">${svg('M6 9l6 6 6-6')}</span></div>`;
       if (open) {
-        h += `<div class="bar2"><div class="seg">${[['day', 'Deň'], ['week', 'Týždeň'], ['month', 'Mesiac'], ['year', 'Rok']].map(([k, t]) => `<b data-mode="${k}" class="${k === mode ? 'on' : ''}">${t}</b>`).join('')}</div>
+        h += `<div class="bar2"><div class="seg">${[['day', _('Deň')], ['week', _('Týždeň')], ['month', _('Mesiac')], ['year', _('Rok')]].map(([k, t]) => `<b data-mode="${k}" class="${k === mode ? 'on' : ''}">${t}</b>`).join('')}</div>
           <div class="nav"><i data-nav="-1">‹</i><span>${esc(r.lab)}</span><i data-nav="1" class="${(this._ovOff || 0) >= 0 ? 'dis' : ''}">›</i></div></div>`;
-        if (!d) h += '<div class="emsg">Načítavam…</div>';
-        else if (d.err) h += '<div class="emsg">Dáta z Energy dashboardu sa nepodarilo načítať.</div>';
-        else if (d.empty) h += '<div class="emsg">V Energy dashboarde nie sú nastavené žiadne zdroje.</div>';
+        if (!d) h += '<div class="emsg">' + _('Načítavam…') + '</div>';
+        else if (d.err) h += '<div class="emsg">' + _('Dáta z Energy dashboardu sa nepodarilo načítať.') + '</div>';
+        else if (d.empty) h += '<div class="emsg">' + _('V Energy dashboarde nie sú nastavené žiadne zdroje.') + '</div>';
         else {
           const eu = (v, pos) => this._eur(pos ? v : -v, true), m = d.mix, mt = d.home || 1, pc = (v) => Math.round(v / mt * 100);
           // dom: spotreba, bilancia, odkiaľ išla spotreba
-          h += `<div class="box hero"><div class="hr"><div class="k"><b>${this._kwh(d.home)}</b><small>kWh</small><div>spotreba domu</div></div>
-            ${d.anyCost ? `<div class="e"><b style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</b><div>bilancia domu</div></div>` : ''}</div>
+          h += `<div class="box hero"><div class="hr"><div class="k"><b>${this._kwh(d.home)}</b><small>kWh</small><div>${_('spotreba domu')}</div></div>
+            ${d.anyCost ? `<div class="e"><b style="color:${d.bal >= 0 ? G : R}">${this._eur(d.bal, true)}</b><div>${_('bilancia domu')}</div></div>` : ''}</div>
             ${d.home > 0.01 ? `<div class="mix2">${[[m.sol, COL.sol], [m.bat, COL.bat], [m.grid, R]].filter((x) => x[0] > mt * 0.005).map((x) => `<i style="flex:${x[0].toFixed(3)};background:${x[1]}"></i>`).join('')}</div>
-            <div class="lg">${[['solár', m.sol, COL.sol], ['batéria', m.bat, COL.bat], ['sieť', m.grid, R]].filter((x) => x[1] > mt * 0.005).map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${pc(x[1])} %</b></span>`).join('')}</div>` : ''}</div>`;
+            <div class="lg">${[[_('solár'), m.sol, COL.sol], [_('batéria'), m.bat, COL.bat], [_('sieť'), m.grid, R]].filter((x) => x[1] > mt * 0.005).map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${pc(x[1])} %</b></span>`).join('')}</div>` : ''}</div>`;
           // zoznam položiek
           const row = (ic, col, name, sub, val, unit, price, pcol) => `<div class="rw"><span class="ri" style="color:${col}">${svg(ic)}</span><span class="rn"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span>
             <span class="rv"><b>${val}<small>${unit}</small></b>${price ? `<div style="color:${pcol}">${price}</div>` : ''}</span></div>`;
           const rows = [];
           if (d.has.sol) {
             const pv = [d.pv1 != null ? `${esc(this._cfg.pv1_name)} ${this._kwh(d.pv1)}` : '', d.pv2 != null ? `${esc(this._cfg.pv2_name)} ${this._kwh(d.pv2)}` : ''].filter(Boolean).join(' · ');
-            rows.push(row(IC.sun, COL.sol, 'Výroba FVE', pv, this._kwh(d.solT), 'kWh'));
+            rows.push(row(IC.sun, COL.sol, _('Výroba FVE'), pv, this._kwh(d.solT), 'kWh'));
           }
-          if (d.has.gout) rows.push(row(IC.up, G, 'Predaj do siete', '', this._kwh(d.goutT), 'kWh', d.hasCost.cout ? eu(d.cout, 1) : '', G));
-          if (d.has.gin) rows.push(row(IC.down, R, 'Nákup zo siete', '', this._kwh(d.ginT), 'kWh', d.hasCost.cin ? eu(d.cin, 0) : '', R));
-          if (d.has.bin || d.has.bout) rows.push(row(IC.bat, COL.bat, 'Batéria', '', `+${this._kwh(d.binT)}<span class="sl">/</span>−${this._kwh(d.boutT)}`, 'kWh'));
-          if (d.has.gas) { const u = d.gasU || 'kWh'; rows.push(row(IC.gas, COL.gas, 'Plyn', '', u === 'kWh' ? this._kwh(d.gasT) : this._nf(d.gasT, d.gasT < 100 ? 2 : 0), esc(u), d.hasCost.cgas ? eu(d.cgas, 0) : '', R)); }
-          if (d.has.wat) rows.push(row(IC.wat, COL.wat, 'Voda', `${this._nf(d.watT / 1000, 2)} m³`, this._nf(d.watT, 0), 'l', d.hasCost.cwat ? eu(d.cwat, 0) : '', R));
+          if (d.has.gout) rows.push(row(IC.up, G, _('Predaj do siete'), '', this._kwh(d.goutT), 'kWh', d.hasCost.cout ? eu(d.cout, 1) : '', G));
+          if (d.has.gin) rows.push(row(IC.down, R, _('Nákup zo siete'), '', this._kwh(d.ginT), 'kWh', d.hasCost.cin ? eu(d.cin, 0) : '', R));
+          if (d.has.bin || d.has.bout) rows.push(row(IC.bat, COL.bat, _('Batéria'), '', `+${this._kwh(d.binT)}<span class="sl">/</span>−${this._kwh(d.boutT)}`, 'kWh'));
+          if (d.has.gas) { const u = d.gasU || 'kWh'; rows.push(row(IC.gas, COL.gas, _('Plyn'), '', u === 'kWh' ? this._kwh(d.gasT) : this._nf(d.gasT, d.gasT < 100 ? 2 : 0), esc(u), d.hasCost.cgas ? eu(d.cgas, 0) : '', R)); }
+          if (d.has.wat) rows.push(row(IC.wat, COL.wat, _('Voda'), `${this._nf(d.watT / 1000, 2)} m³`, this._nf(d.watT, 0), 'l', d.hasCost.cwat ? eu(d.cwat, 0) : '', R));
           if (rows.length) h += `<div class="box lst">${rows.join('')}</div>`;
         }
       }
@@ -495,56 +591,56 @@
   /* ================= Editor ================= */
   class HomeEnergyCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = Object.assign({}, DEF, this._cfg); }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
         const ent = (n) => ({ name: n, selector: { entity: { domain: ['sensor', 'input_number', 'number'] } } });   // bez filtra device_class – nie každý senzor ho má
         const num = (n, unit, max, step) => ({ name: n, selector: { number: { min: 0, max: max || 100, step: step || 0.5, mode: 'box', unit_of_measurement: unit } } });
         const st = (n) => ({ name: n, selector: { statistic: {} } });
-        const stats = (list) => ({ type: 'expandable', name: '', title: 'Štatistiky pre Prehľad (prázdne = z Energy dashboardu)', icon: 'mdi:chart-box-outline', schema: list.map(st) });
+        const stats = (list) => ({ type: 'expandable', name: '', title: _('Štatistiky pre Prehľad (prázdne = z Energy dashboardu)'), icon: 'mdi:chart-box-outline', schema: list.map(st) });
         const sec = (title, icon, schema, expanded) => ({ type: 'expandable', name: '', title, icon, expanded: !!expanded, schema });
         f.schema = [
-          sec('Všeobecné', 'mdi:home-lightning-bolt-outline', [
+          sec(_('Všeobecné'), 'mdi:home-lightning-bolt-outline', [
             { name: 'title', selector: { text: {} } }, ent('home_power', 'power'), num('home_max', 'kW'),
             { type: 'grid', name: '', schema: [{ name: 'overview', selector: { boolean: {} } }, { name: 'today', selector: { boolean: {} } }] }], true),
-          sec('Solár', 'mdi:solar-power-variant', [ent('solar_power', 'power'), num('solar_max', 'kW'),
+          sec(_('Solár'), 'mdi:solar-power-variant', [ent('solar_power', 'power'), num('solar_max', 'kW'),
             { type: 'grid', name: '', schema: [ent('pv1_power', 'power'), { name: 'pv1_name', selector: { text: {} } }, ent('pv2_power', 'power'), { name: 'pv2_name', selector: { text: {} } }] },
             ent('solar_forecast', 'energy'), stats(['stat_solar', 'stat_pv1', 'stat_pv2'])]),
-          sec('Batéria', 'mdi:home-battery-outline', [ent('battery_soc', 'battery'), ent('battery_power', 'power'), { name: 'battery_invert', selector: { boolean: {} } }, num('battery_max', 'kW'),
+          sec(_('Batéria'), 'mdi:home-battery-outline', [ent('battery_soc', 'battery'), ent('battery_power', 'power'), { name: 'battery_invert', selector: { boolean: {} } }, num('battery_max', 'kW'),
             stats(['stat_battery_in', 'stat_battery_out'])]),
-          sec('Sieť', 'mdi:transmission-tower', [ent('grid_power', 'power'), { name: 'grid_invert', selector: { boolean: {} } }, num('grid_max', 'kW'),
+          sec(_('Sieť'), 'mdi:transmission-tower', [ent('grid_power', 'power'), { name: 'grid_invert', selector: { boolean: {} } }, num('grid_max', 'kW'),
             stats(['stat_grid_in', 'cost_grid_in', 'stat_grid_out', 'cost_grid_out'])]),
-          sec('Plyn', 'mdi:fire', [ent('gas_power'), num('gas_max', '', 500, 1), ent('gas_meter'), stats(['stat_gas', 'cost_gas'])]),
-          sec('Voda', 'mdi:water-outline', [ent('water_flow'), num('water_max', '', 1000, 1), ent('water_meter'), stats(['stat_water', 'cost_water'])]),
-          sec('Teplá úžitková voda', 'mdi:water-thermometer-outline', [ent('tuv_temp', 'temperature'),
+          sec(_('Plyn'), 'mdi:fire', [ent('gas_power'), num('gas_max', '', 500, 1), ent('gas_meter'), stats(['stat_gas', 'cost_gas'])]),
+          sec(_('Voda'), 'mdi:water-outline', [ent('water_flow'), num('water_max', '', 1000, 1), ent('water_meter'), stats(['stat_water', 'cost_water'])]),
+          sec(_('Teplá úžitková voda'), 'mdi:water-thermometer-outline', [ent('tuv_temp', 'temperature'),
             { type: 'grid', name: '', schema: [num('tuv_min', '°C', 100, 1), num('tuv_max', '°C', 100, 1)] }])
         ];
         const L = {
-          title: 'Nadpis karty', home_power: 'Spotreba domu – výkon', home_max: 'Mierka pruhu spotreby', overview: 'Prehľad (deň / týždeň / mesiac / rok)', today: 'Dnešné súčty v dlaždiciach',
-          solar_power: 'Výkon FVE spolu', solar_max: 'Mierka FVE', pv1_power: 'PV1 – výkon', pv1_name: 'PV1 – názov', pv2_power: 'PV2 – výkon', pv2_name: 'PV2 – názov', solar_forecast: 'Predpoveď – zostávajúca výroba dnes',
-          battery_soc: 'Nabitie (SOC %)', battery_power: 'Výkon batérie', battery_invert: 'Otočiť znamienko výkonu', battery_max: 'Mierka výkonu batérie',
-          grid_power: 'Výkon siete', grid_invert: 'Otočiť znamienko výkonu', grid_max: 'Mierka siete',
-          gas_power: 'Plyn – okamžitý výkon / prietok', gas_max: 'Mierka plynu', gas_meter: 'Stav plynomeru',
-          water_flow: 'Voda – prietok', water_max: 'Mierka vody', water_meter: 'Stav vodomeru',
-          tuv_temp: 'Teplota v zásobníku', tuv_min: 'Studená (modrá)', tuv_max: 'Horúca (červená)',
-          stat_solar: 'Výroba FVE spolu (kWh)', stat_pv1: 'Výroba PV1 (kWh)', stat_pv2: 'Výroba PV2 (kWh)', stat_battery_in: 'Energia do batérie (kWh)', stat_battery_out: 'Energia z batérie (kWh)',
-          stat_grid_in: 'Odber zo siete (kWh)', cost_grid_in: 'Náklad na odber', stat_grid_out: 'Dodávka do siete (kWh)', cost_grid_out: 'Príjem z dodávky',
-          stat_gas: 'Spotreba plynu', cost_gas: 'Náklad na plyn', stat_water: 'Spotreba vody', cost_water: 'Náklad na vodu' };
+          title: _('Nadpis karty'), home_power: _('Spotreba domu – výkon'), home_max: _('Mierka pruhu spotreby'), overview: _('Prehľad (deň / týždeň / mesiac / rok)'), today: _('Dnešné súčty v dlaždiciach'),
+          solar_power: _('Výkon FVE spolu'), solar_max: _('Mierka FVE'), pv1_power: _('PV1 – výkon'), pv1_name: _('PV1 – názov'), pv2_power: _('PV2 – výkon'), pv2_name: _('PV2 – názov'), solar_forecast: _('Predpoveď – zostávajúca výroba dnes'),
+          battery_soc: _('Nabitie (SOC %)'), battery_power: _('Výkon batérie'), battery_invert: _('Otočiť znamienko výkonu'), battery_max: _('Mierka výkonu batérie'),
+          grid_power: _('Výkon siete'), grid_invert: _('Otočiť znamienko výkonu'), grid_max: _('Mierka siete'),
+          gas_power: _('Plyn – okamžitý výkon / prietok'), gas_max: _('Mierka plynu'), gas_meter: _('Stav plynomeru'),
+          water_flow: _('Voda – prietok'), water_max: _('Mierka vody'), water_meter: _('Stav vodomeru'),
+          tuv_temp: _('Teplota v zásobníku'), tuv_min: _('Studená (modrá)'), tuv_max: _('Horúca (červená)'),
+          stat_solar: _('Výroba FVE spolu (kWh)'), stat_pv1: _('Výroba PV1 (kWh)'), stat_pv2: _('Výroba PV2 (kWh)'), stat_battery_in: _('Energia do batérie (kWh)'), stat_battery_out: _('Energia z batérie (kWh)'),
+          stat_grid_in: _('Odber zo siete (kWh)'), cost_grid_in: _('Náklad na odber'), stat_grid_out: _('Dodávka do siete (kWh)'), cost_grid_out: _('Príjem z dodávky'),
+          stat_gas: _('Spotreba plynu'), cost_gas: _('Náklad na plyn'), stat_water: _('Spotreba vody'), cost_water: _('Náklad na vodu') };
         const H = {
-          home_power: 'W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.',
-          home_max: 'Pri tejto hodnote je pruh plný.',
-          overview: 'Rozbaľovací prehľad dole, dáta z Energy dashboardu.',
-          today: 'Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.',
-          solar_power: 'Ak chýba, sčíta sa PV1 + PV2.',
-          pv1_power: 'Voliteľné – pruh solára sa rozdelí na dve farby.',
-          solar_forecast: 'Napr. Solcast „forecast remaining today“ (kWh).',
-          battery_power: 'Karta počíta + = vybíjanie, − = nabíjanie.',
-          battery_invert: 'Zapni, ak senzor ukazuje + pri nabíjaní.',
-          grid_power: 'Karta počíta + = odber zo siete, − = predaj.',
-          grid_invert: 'Zapni, ak senzor ukazuje + pri predaji.',
-          gas_meter: 'Voliteľné – zobrazí sa pod pruhom plynu.', water_meter: 'Voliteľné – zobrazí sa pod pruhom vody.',
-          tuv_temp: 'Voliteľné – farba pruhu podľa teploty.' };
+          home_power: _('W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.'),
+          home_max: _('Pri tejto hodnote je pruh plný.'),
+          overview: _('Rozbaľovací prehľad dole, dáta z Energy dashboardu.'),
+          today: _('Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.'),
+          solar_power: _('Ak chýba, sčíta sa PV1 + PV2.'),
+          pv1_power: _('Voliteľné – pruh solára sa rozdelí na dve farby.'),
+          solar_forecast: _('Napr. Solcast „forecast remaining today“ (kWh).'),
+          battery_power: _('Karta počíta + = vybíjanie, − = nabíjanie.'),
+          battery_invert: _('Zapni, ak senzor ukazuje + pri nabíjaní.'),
+          grid_power: _('Karta počíta + = odber zo siete, − = predaj.'),
+          grid_invert: _('Zapni, ak senzor ukazuje + pri predaji.'),
+          gas_meter: _('Voliteľné – zobrazí sa pod pruhom plynu.'), water_meter: _('Voliteľné – zobrazí sa pod pruhom vody.'),
+          tuv_temp: _('Voliteľné – farba pruhu podľa teploty.') };
         f.computeLabel = (x) => L[x.name] || x.title || x.name;
         f.computeHelper = (x) => H[x.name];
         f.addEventListener('value-changed', (e) => {
@@ -564,6 +660,6 @@
   if (!customElements.get('igy-energy-card')) customElements.define('igy-energy-card', HomeEnergyCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-energy-card'))
-    window.customCards.push({ type: 'igy-energy-card', name: 'Igy Energy Card', description: 'Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda', preview: true });
+    window.customCards.push({ type: 'igy-energy-card', name: 'Igy Energy Card', description: _('Prehľad energie: spotreba a jej zdroje, solár, batéria, sieť, plyn, voda'), preview: true });
   console.info('%c IGY-ENERGY-CARD %c ' + VERSION + ' ', 'background:#30d158;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

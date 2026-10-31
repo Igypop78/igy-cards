@@ -5,7 +5,6 @@
  *   type: custom:igy-room-card
  *   area: bedroom              # area id or name
  *   title: Bedroom             # optional, defaults to the area name
- *   language: auto             # optional: auto (HA language) / en / sk
  *   columns: 7                 # optional, buttons per row (default: automatic)
  *   title_tap: toggle          # optional: none / toggle (lights on/off) / more-info
  *   collapsible: true          # optional: card collapses to one row (tap the header)
@@ -57,7 +56,7 @@
     }
   };
   function lang(hass, cfg) {
-    const l = (cfg && cfg.language && cfg.language !== 'auto' ? cfg.language : (hass && ((hass.locale && hass.locale.language) || hass.language)) || 'en').toLowerCase().slice(0, 2);
+    const l = String((hass && ((hass.locale && hass.locale.language) || hass.language)) || (typeof document !== 'undefined' && document.documentElement.lang) || 'en').toLowerCase().slice(0, 2);
     return STR[l] ? l : 'en';
   }
   function T(hass, cfg) { const l = STR[lang(hass, cfg)]; return (k) => l[k] || STR.en[k] || k; }
@@ -263,7 +262,7 @@
       if (!h.entities || !h.areas) return;
       const c = this._collect();
       // podpis – prekresli len pri zmene stavu entít karty
-      const sig = [c.aid, this._cfg.title, this._cfg.columns, JSON.stringify([this._cfg.order, this._cfg.buttons, this._cfg.secondary, this._cfg.header, this._cfg.hidden, this._cfg.customize, this._cfg.new_entities, this._cfg.language]), c.sec.length].concat(c.hdr, c.btn).map((id) => {
+      const sig = [c.aid, this._cfg.title, this._cfg.columns, JSON.stringify([this._cfg.order, this._cfg.buttons, this._cfg.secondary, this._cfg.header, this._cfg.hidden, this._cfg.customize, this._cfg.new_entities]), c.sec.length].concat(c.hdr, c.btn).map((id) => {
         const s = h.states[id], a = s ? s.attributes : {}; const e = h.entities[id] || {}; return id + ':' + (a.friendly_name || '') + (e.name || '') + (e.icon || '') + (a.icon || '') + ':' + (s ? s.state + (a.hvac_action || '') + (a.rgb_color || '') + '/' + a.current_temperature + '/' + a.temperature + '/' + a.current_position + '/' + a.brightness : '');
       }).join('|');
       if (sig === this._sig) return;
@@ -441,28 +440,24 @@
       const t = this._t, c = this._cfg;
       this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div id="ents"></div></div>`;
       const opt = (v, l) => ({ value: v, label: l });
-      const data = { area: c.area || '', title: c.title || '', language: c.language || 'auto', columns: c.columns || '', title_tap: c.title_tap || 'none',
+      const data = { area: c.area || '', title: c.title || '', columns: c.columns || '', title_tap: c.title_tap || 'none',
         collapsible: !!c.collapsible, collapsed: c.collapsed !== false, new_entities: c.new_entities || 'auto' };
       this._top = this._form(data, [
         { name: 'area', required: true, selector: { area: {} } },
         { name: 'title', selector: { text: {} } },
-        { type: 'grid', name: '', schema: [
-          { name: 'language', selector: { select: { mode: 'dropdown', options: [opt('auto', t('lang_auto')), opt('en', 'English'), opt('sk', 'Slovenčina')] } } },
-          { name: 'columns', selector: { number: { min: 3, max: 10, mode: 'box' } } }] },
+        { name: 'columns', selector: { number: { min: 3, max: 10, mode: 'box' } } },
         { name: 'title_tap', selector: { select: { mode: 'dropdown', options: [opt('none', t('tt_none')), opt('toggle', t('tt_toggle')), opt('more-info', t('tt_more'))] } } },
         { type: 'grid', name: '', schema: [{ name: 'collapsible', selector: { boolean: {} } }, { name: 'collapsed', selector: { boolean: {} } }] },
         { name: 'new_entities', selector: { select: { mode: 'box', options: [opt('auto', t('ne_auto')), opt('hide', t('ne_hide'))] } } }
-      ], { area: t('area'), title: t('title'), language: t('language'), columns: t('columns'), title_tap: t('title_tap'), collapsible: t('collapsible'), collapsed: t('collapsed'), new_entities: t('new_entities') },
+      ], { area: t('area'), title: t('title'), columns: t('columns'), title_tap: t('title_tap'), collapsible: t('collapsible'), collapsed: t('collapsed'), new_entities: t('new_entities') },
       (v) => {
-        const langBefore = lang(this._hass, c);
         ['area', 'title', 'columns'].forEach((k) => { if (v[k] === undefined || v[k] === '' || v[k] === null) delete c[k]; else c[k] = v[k]; });
-        if (v.language && v.language !== 'auto') c.language = v.language; else delete c.language;
+        delete c.language;
         if (v.title_tap && v.title_tap !== 'none') c.title_tap = v.title_tap; else delete c.title_tap;
         if (v.collapsible) c.collapsible = true; else delete c.collapsible;
         if (v.collapsed === false) c.collapsed = false; else delete c.collapsed;
         if (v.new_entities === 'hide') c.new_entities = 'hide'; else delete c.new_entities;
-        this._emit();
-        if (lang(this._hass, c) !== langBefore) this._build(); else this._lists();
+        this._emit(); this._lists();
       });
       this.querySelector('#top').appendChild(this._top);
       this._lists();

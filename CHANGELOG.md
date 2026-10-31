@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0] – 2026-10-31
+### Added
+- English UI for all cards and editors. The language follows the Home Assistant user language (`hass.locale.language`); Slovak is used for `sk`, English for everything else.
+- Weather card: `ring_max` is now available in the visual editor.
+
+### Changed
+- Room card: the `language` option was removed – the card uses the Home Assistant language like all other cards.
+- Energy card: the default title is translated (an explicit `title` is kept as is).
+- README screenshots are now in English.
+
 ## [1.2.0] – 2026-10-31
 
 **igy-room-card 2.0.0**

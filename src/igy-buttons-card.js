@@ -29,6 +29,53 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "práve teraz": "just now",
+    "pred {0} min": "{0} min ago",
+    "pred {0} h": "{0} h ago",
+    "pred {0} d": "{0} d ago",
+    "Pridaj tlačidlá v nastaveniach karty.": "Add buttons in the card settings.",
+    "Potvrdiť": "Confirm",
+    "Automaticky podľa entity": "Automatic by entity",
+    "Prepnúť / spustiť": "Toggle / run",
+    "Detail entity": "Entity details",
+    "Spustiť akciu (služba)": "Perform action (service)",
+    "Prejsť na stránku": "Navigate to page",
+    "Otvoriť odkaz": "Open URL",
+    "Nič": "Nothing",
+    "Tlačidlá": "Buttons",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.": "Drag by ⠿ to reorder. Tap a button to set its name, icon, action and confirmation.",
+    "+ Pridať tlačidlo": "+ Add button",
+    "Dlaždice": "Tiles",
+    "Pilulky": "Pills",
+    "Len ikony": "Icons only",
+    "Nadpis (voliteľné)": "Title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "Vzhľad": "Layout",
+    "Stĺpcov (prázdne = automaticky)": "Columns (empty = automatic)",
+    "Nové tlačidlo": "New button",
+    "vyber entitu alebo akciu": "choose an entity or action",
+    "Entita": "Entity",
+    "Názov": "Name",
+    "Ikona": "Icon",
+    "Ťuk": "Tap action",
+    "Akcia (napr. vacuum.start)": "Action (e.g. vacuum.start)",
+    "Stránka (napr. /lovelace/kuchyna)": "Page (e.g. /lovelace/kitchen)",
+    "Odkaz": "URL",
+    "Potvrdiť druhým ťukom": "Confirm with a second tap",
+    "Zobraziť názov": "Show name",
+    "Farba zapnutého stavu (voliteľné, napr. #ff6961)": "Active color (optional, e.g. #ff6961)",
+    "Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.": "Automatic: button/script/scene = run, switch/boolean = toggle, otherwise details. Long press always opens details.",
+    "Len pre „Spustiť akciu“ – cieľom je vybraná entita.": "Only for “Perform action” – the selected entity is the target.",
+    "Proti náhodnému stlačeniu (napr. stráženie, brána).": "Prevents accidental presses (e.g. alarm, gate).",
+    "Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.": "Buttons to trigger actions – tiles, pills or icons."
+  };
+
   const VERSION = '1.0.4';
   const ACC = '#ff9f0a';
   const TOGGLE = ['switch', 'light', 'input_boolean', 'fan', 'automation', 'siren', 'humidifier', 'group'];
@@ -87,8 +134,8 @@
   class HomeButtonsCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-buttons-card-editor'); }
     static getStubConfig() { return { layout: 'tiles', buttons: [] }; }
-    setConfig(c) { if (!c) throw new Error('Chybná konfigurácia.'); this._cfg = normalize(c); this._built = false; if (this._hass) this._render(); }
-    set hass(h) { this._hass = h; this._render(); }
+    setConfig(c) { if (!c) throw new Error(_('Chybná konfigurácia.')); this._cfg = normalize(c); this._built = false; if (this._hass) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; this._render(); }
     getCardSize() { const n = this._cfg.buttons.length, cols = this._cols(); return (this._cfg.title ? 1 : 0) + Math.ceil(n / cols) * (this._cfg.layout === 'tiles' || !this._cfg.layout ? 2 : 1); }
     getGridOptions() { return { columns: 12, min_columns: 3 }; }
     _cols() { const c = this._cfg; return c.columns || Math.min(c.buttons.length || 1, c.layout === 'icons' ? 6 : c.layout === 'pills' ? 2 : 4); }
@@ -106,7 +153,7 @@
       }
       return '';
     }
-    _ago(ts) { const m = Math.round((Date.now() - Date.parse(ts)) / 60000); if (isNaN(m)) return ''; return m < 1 ? 'práve teraz' : m < 60 ? `pred ${m} min` : m < 1440 ? `pred ${Math.floor(m / 60)} h` : `pred ${Math.floor(m / 1440)} d`; }
+    _ago(ts) { const m = Math.round((Date.now() - Date.parse(ts)) / 60000); if (isNaN(m)) return ''; return m < 1 ? _('práve teraz') : m < 60 ? _('pred {0} min', m) : m < 1440 ? _('pred {0} h', Math.floor(m / 60)) : _('pred {0} d', Math.floor(m / 1440)); }
 
     _render() {
       if (!this._hass || !this._cfg) return;
@@ -118,7 +165,7 @@
           ${c.title ? `<div class="hl">${c.icon ? `<ha-icon icon="${esc(c.icon)}"></ha-icon>` : ''}<span>${esc(c.title)}</span></div>` : ''}
           ${c.buttons.length ? `<div class="g ${lay}" style="grid-template-columns:repeat(${this._cols()},minmax(0,1fr))">${c.buttons.map((b, i) => `
             <button class="b" data-i="${i}"><span class="ic"></span>${lay === 'pills' ? '<span class="tx"><span class="nm"></span><span class="st"></span></span>' : '<span class="nm"></span><span class="st"></span>'}<span class="ov"></span></button>`).join('')}</div>`
-            : '<div class="empty">Pridaj tlačidlá v nastaveniach karty.</div>'}
+            : '<div class="empty">' + _('Pridaj tlačidlá v nastaveniach karty.') + '</div>'}
         </ha-card>`;
         this.shadowRoot.querySelectorAll('.b').forEach((el) => this._bind(el));
         this._built = true;
@@ -154,7 +201,7 @@
     _tap(el) {
       const i = +el.dataset.i, b = this._cfg.buttons[i];
       if (b.confirm && !el.classList.contains('cf')) {
-        el.querySelector('.ov').innerHTML = `<ha-icon icon="mdi:gesture-tap"></ha-icon>${esc(typeof b.confirm === 'string' ? b.confirm : 'Potvrdiť')}`;
+        el.querySelector('.ov').innerHTML = `<ha-icon icon="mdi:gesture-tap"></ha-icon>${esc(typeof b.confirm === 'string' ? b.confirm : _('Potvrdiť'))}`;
         el.classList.add('cf'); clearTimeout(el._cfT); el._cfT = setTimeout(() => el.classList.remove('cf'), 3000);
         return;
       }
@@ -219,8 +266,8 @@
   `;
   const ICO = { down: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z"/></svg>',
     del: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9m0 5h2v9H9V8m4 0h2v9h-2V8z"/></svg>' };
-  const ACTS = [{ value: 'auto', label: 'Automaticky podľa entity' }, { value: 'toggle', label: 'Prepnúť / spustiť' }, { value: 'more-info', label: 'Detail entity' },
-    { value: 'perform-action', label: 'Spustiť akciu (služba)' }, { value: 'navigate', label: 'Prejsť na stránku' }, { value: 'url', label: 'Otvoriť odkaz' }, { value: 'none', label: 'Nič' }];
+  const ACTS = () => [{ value: 'auto', label: _('Automaticky podľa entity') }, { value: 'toggle', label: _('Prepnúť / spustiť') }, { value: 'more-info', label: _('Detail entity') },
+    { value: 'perform-action', label: _('Spustiť akciu (služba)') }, { value: 'navigate', label: _('Prejsť na stránku') }, { value: 'url', label: _('Otvoriť odkaz') }, { value: 'none', label: _('Nič') }];
 
   class HomeButtonsCardEditor extends HTMLElement {
     setConfig(config) {
@@ -229,7 +276,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       // HA konfiguráciu zmrazí – posiela sa hlboká kópia, vlastný stav editora ostane upraviteľný
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-buttons-card' }, this._cfg)));
@@ -239,13 +286,13 @@
     _form(data, schema, L, H, cb) { const f = document.createElement('ha-form'); f.hass = this._hass; f.data = data; f.schema = schema; f.computeLabel = (x) => L[x.name] || x.name; f.computeHelper = (x) => H && H[x.name]; f.addEventListener('value-changed', (e) => { e.stopPropagation(); const v = Object.assign({}, e.detail.value); try { cb(v); } catch (err) { console.error('igy-buttons-card editor:', err); } }); return f; }
     _build() {
       const c = this._cfg, open = this._open || new Set();
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Tlačidlá</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.</div><div class="items" id="items"></div><button class="btn" id="add">+ Pridať tlačidlo</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Tlačidlá')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na tlačidlo pre názov, ikonu, akciu a potvrdenie.')}</div><div class="items" id="items"></div><button class="btn" id="add">${_('+ Pridať tlačidlo')}</button></div>`;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', icon: c.icon || '', layout: c.layout || 'tiles', columns: c.columns || '' },
         [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
-          { name: 'layout', selector: { select: { mode: 'box', options: [{ value: 'tiles', label: 'Dlaždice' }, { value: 'pills', label: 'Pilulky' }, { value: 'icons', label: 'Len ikony' }] } } },
+          { name: 'layout', selector: { select: { mode: 'box', options: [{ value: 'tiles', label: _('Dlaždice') }, { value: 'pills', label: _('Pilulky') }, { value: 'icons', label: _('Len ikony') }] } } },
           { name: 'columns', selector: { number: { min: 1, max: 8, mode: 'box' } } }],
-        { title: 'Nadpis (voliteľné)', icon: 'Ikona pri nadpise', layout: 'Vzhľad', columns: 'Stĺpcov (prázdne = automaticky)' }, null,
+        { title: _('Nadpis (voliteľné)'), icon: _('Ikona pri nadpise'), layout: _('Vzhľad'), columns: _('Stĺpcov (prázdne = automaticky)') }, null,
         (v) => { ['title', 'icon', 'columns'].forEach((k) => { if (v[k] === '' || v[k] == null) delete c[k]; else c[k] = v[k]; }); if (v.layout && v.layout !== 'tiles') c.layout = v.layout; else delete c.layout; this._emit(); }));
       const box = this.querySelector('#items');
       c.buttons.forEach((b, i) => box.appendChild(this._item(b, i, open.has(i))));
@@ -256,7 +303,7 @@
       const c = this._cfg, it = document.createElement('div');
       it.className = 'it' + (isOpen ? ' open' : '');
       it.innerHTML = `<div class="ih"><span class="hd">⠿</span><span class="tx"><b></b><small></small></span><button class="ib exp">${ICO.down}</button><button class="ib del">${ICO.del}</button></div><div class="body"></div>`;
-      const setTx = () => { const s = b.entity && this._hass.states[b.entity]; it.querySelector('.tx b').textContent = b.name || (s && s.attributes.friendly_name) || b.entity || 'Nové tlačidlo'; it.querySelector('.tx small').textContent = [b.entity, b.tap_action && b.tap_action.action].filter(Boolean).join(' · ') || 'vyber entitu alebo akciu'; };
+      const setTx = () => { const s = b.entity && this._hass.states[b.entity]; it.querySelector('.tx b').textContent = b.name || (s && s.attributes.friendly_name) || b.entity || _('Nové tlačidlo'); it.querySelector('.tx small').textContent = [b.entity, b.tap_action && b.tap_action.action].filter(Boolean).join(' · ') || _('vyber entitu alebo akciu'); };
       setTx();
       const tog = () => { it.classList.toggle('open'); this._open = new Set([...this.querySelectorAll('.it')].map((x, k) => x.classList.contains('open') ? k : -1).filter((k) => k >= 0)); };
       it.querySelector('.tx').onclick = tog; it.querySelector('.exp').onclick = tog;
@@ -266,14 +313,14 @@
         action: ta.action || 'auto', perform_action: ta.perform_action || ta.service || '', navigation_path: ta.navigation_path || '', url_path: ta.url_path || '' };
       const schema = [{ name: 'entity', selector: { entity: {} } },
         { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } }] },
-        { name: 'action', selector: { select: { mode: 'dropdown', options: ACTS } } },
+        { name: 'action', selector: { select: { mode: 'dropdown', options: ACTS() } } },
         { name: 'perform_action', selector: { text: {} } }, { name: 'navigation_path', selector: { text: {} } }, { name: 'url_path', selector: { text: {} } },
         { type: 'grid', name: '', schema: [{ name: 'confirm', selector: { boolean: {} } }, { name: 'show_name', selector: { boolean: {} } }] },
         { name: 'color', selector: { text: {} } }];
-      const L = { entity: 'Entita', name: 'Názov', icon: 'Ikona', action: 'Ťuk', perform_action: 'Akcia (napr. vacuum.start)', navigation_path: 'Stránka (napr. /lovelace/kuchyna)', url_path: 'Odkaz',
-        confirm: 'Potvrdiť druhým ťukom', show_name: 'Zobraziť názov', color: 'Farba zapnutého stavu (voliteľné, napr. #ff6961)' };
-      const Hh = { action: 'Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.',
-        perform_action: 'Len pre „Spustiť akciu“ – cieľom je vybraná entita.', confirm: 'Proti náhodnému stlačeniu (napr. stráženie, brána).' };
+      const L = { entity: _('Entita'), name: _('Názov'), icon: _('Ikona'), action: _('Ťuk'), perform_action: _('Akcia (napr. vacuum.start)'), navigation_path: _('Stránka (napr. /lovelace/kuchyna)'), url_path: _('Odkaz'),
+        confirm: _('Potvrdiť druhým ťukom'), show_name: _('Zobraziť názov'), color: _('Farba zapnutého stavu (voliteľné, napr. #ff6961)') };
+      const Hh = { action: _('Automaticky: tlačidlo/skript/scéna = spustiť, vypínač/boolean = prepnúť, inak detail. Podržanie vždy otvorí detail.'),
+        perform_action: _('Len pre „Spustiť akciu“ – cieľom je vybraná entita.'), confirm: _('Proti náhodnému stlačeniu (napr. stráženie, brána).') };
       it.querySelector('.body').appendChild(this._form(data, schema, L, Hh, (v) => {
         const n = {};
         ['entity', 'name', 'icon', 'color'].forEach((k) => { if (v[k]) n[k] = v[k]; });
@@ -311,6 +358,6 @@
   if (!customElements.get('igy-buttons-card')) customElements.define('igy-buttons-card', HomeButtonsCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-buttons-card'))
-    window.customCards.push({ type: 'igy-buttons-card', name: 'Igy Buttons Card', description: 'Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.', preview: true });
+    window.customCards.push({ type: 'igy-buttons-card', name: 'Igy Buttons Card', description: _('Tlačidlá na spúšťanie akcií – dlaždice, pilulky alebo ikony.'), preview: true });
   console.info('%c IGY-BUTTONS-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

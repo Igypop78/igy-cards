@@ -18,6 +18,24 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Poznámka": "Note",
+    "### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**": "### Heading\nText with **bold** font.\n- ☀️ list item\n- **🔋 highlighted item**",
+    "Chýba content.": "Missing content.",
+    "Načítavam…": "Loading…",
+    "Nadpis karty (voliteľné)": "Card title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "--- rozdelí obsah do skupín": "--- splits content into groups",
+    "Bez pozadia karty": "No card background",
+    "Obsah (Markdown + šablóny)": "Content (Markdown + templates)",
+    "Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.": "Content works like the standard Markdown card (Jinja templates included). In addition: <b>---</b> starts a new group, an <b>emoji</b> at the start of a list item becomes its icon, a <b>bold item</b> is highlighted.",
+    "Markdown so šablónami v jednotnom štýle, skupiny cez ---.": "Markdown with templates in the shared style, groups via ---."
+  };
+
   const VERSION = '1.0.1';
   const ACC = '#ff9f0a';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -137,15 +155,15 @@
 
   class HomeMarkdownCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-markdown-card-editor'); }
-    static getStubConfig() { return { title: 'Poznámka', content: '### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**' }; }
+    static getStubConfig() { return { title: _('Poznámka'), content: _('### Nadpis\nText s **tučným** písmom.\n- ☀️ položka zoznamu\n- **🔋 zvýraznená položka**') }; }
     setConfig(c) {
-      if (!c || c.content == null) throw new Error('Chýba content.');
+      if (!c || c.content == null) throw new Error(_('Chýba content.'));
       const changed = !this._config || c.content !== this._config.content;
       this._config = Object.assign({}, c); this._built = false;
       if (changed) { this._unsub(); this._res = null; this._err = null; }
       if (this._hass) { this._render(); this._sub(); }
     }
-    set hass(h) { const first = !this._hass; this._hass = h; if (first && this._config) { this._render(); this._sub(); } }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; if (first && this._config) { this._render(); this._sub(); } }
     connectedCallback() { if (this._hass) this._sub(); }
     disconnectedCallback() { this._unsub(); }
     getCardSize() { return 3 + Math.round(((this._res || this._config.content || '').match(/\n/g) || []).length / 3); }
@@ -169,7 +187,7 @@
       const c = this._config;
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card class="${c.text_only ? 'plain' : ''}">
         ${c.title ? `<div class="hl">${c.icon ? `<ha-icon icon="${esc(c.icon)}"></ha-icon>` : ''}<span>${esc(c.title)}</span></div>` : ''}
-        <div class="body" id="b"><div class="ld">Načítavam…</div></div></ha-card>`;
+        <div class="body" id="b"><div class="ld">${_('Načítavam…')}</div></div></ha-card>`;
       this._built = true; this._last = null;
       if (this._res != null || this._err) this._draw();
     }
@@ -193,14 +211,14 @@
   class HomeMarkdownCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
     _data() { const c = this._cfg || {}; return { title: c.title || '', icon: c.icon || '', grouped: c.grouped !== false, text_only: !!c.text_only, content: c.content || '' }; }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
         f.schema = [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
           { type: 'grid', name: '', schema: [{ name: 'grouped', selector: { boolean: {} } }, { name: 'text_only', selector: { boolean: {} } }] },
           { name: 'content', selector: { template: {} } }];
-        const L = { title: 'Nadpis karty (voliteľné)', icon: 'Ikona pri nadpise', grouped: '--- rozdelí obsah do skupín', text_only: 'Bez pozadia karty', content: 'Obsah (Markdown + šablóny)' };
+        const L = { title: _('Nadpis karty (voliteľné)'), icon: _('Ikona pri nadpise'), grouped: _('--- rozdelí obsah do skupín'), text_only: _('Bez pozadia karty'), content: _('Obsah (Markdown + šablóny)') };
         f.computeLabel = (x) => L[x.name] || x.name;
         f.addEventListener('value-changed', (e) => {
           const v = e.detail.value, c = Object.assign({ type: 'custom:igy-markdown-card' }, this._cfg);
@@ -213,7 +231,7 @@
         });
         const hint = document.createElement('div');
         hint.style.cssText = 'font-size:13px;color:var(--secondary-text-color);line-height:1.4;margin-bottom:12px';
-        hint.innerHTML = 'Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.';
+        hint.innerHTML = _('Obsah funguje rovnako ako v štandardnej Markdown karte (aj Jinja šablóny). Navyše: <b>---</b> začne novú skupinu, <b>emoji</b> na začiatku položky zoznamu je ikona, <b>tučná položka</b> sa zvýrazní.');
         this.appendChild(hint); this.appendChild(f);
       }
       this._f.hass = h; this._f.data = this._data();
@@ -224,6 +242,6 @@
   if (!customElements.get('igy-markdown-card')) customElements.define('igy-markdown-card', HomeMarkdownCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-markdown-card'))
-    window.customCards.push({ type: 'igy-markdown-card', name: 'Igy Markdown Card', description: 'Markdown so šablónami v jednotnom štýle, skupiny cez ---.', preview: true });
+    window.customCards.push({ type: 'igy-markdown-card', name: 'Igy Markdown Card', description: _('Markdown so šablónami v jednotnom štýle, skupiny cez ---.'), preview: true });
   console.info('%c IGY-MARKDOWN-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

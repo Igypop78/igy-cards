@@ -26,6 +26,56 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Výkon": "Power",
+    "Napätie": "Voltage",
+    "Prúd": "Current",
+    "Δ článkov": "Cell Δ",
+    "Teplota": "Temp.",
+    "Batéria": "Battery",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "zapnutý": "on",
+    "vypnutý": "off",
+    "nabíja": "charging",
+    "vybíja": "discharging",
+    "stojí": "idle",
+    "vydrží": "lasts",
+    "vyrovnáva články pri vybíjaní": "balancing cells (discharge balancer)",
+    "vyrovnáva články pri nabíjaní": "balancing cells (charge balancer)",
+    "vyrovnáva články": "balancing cells",
+    "{0} cyklov": "{0} cycles",
+    "Súčet BMS": "BMS total",
+    "rozdiel voči {0}": "difference vs {0}",
+    "meraču": "meter",
+    "Nastav hlavný merač a BMS v nastaveniach karty.": "Set the main meter and BMS in the card settings.",
+    "Hlavný merač (celá batéria)": "Main meter (whole battery)",
+    "Jednotlivé BMS": "Individual BMS",
+    "Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.": "Table columns appear only for values filled in for at least one BMS.",
+    "+ Pridať BMS": "+ Add BMS",
+    "Ďalšie hodnoty": "Additional values",
+    "+ Pridať hodnotu": "+ Add value",
+    "Nadpis": "Title",
+    "Plný pásik výkonu BMS": "Full BMS power bar",
+    "Názov (napr. SmartShunt)": "Name (e.g. SmartShunt)",
+    "Výkon (+ nabíja / − vybíja)": "Power (+ charging / − discharging)",
+    "Prúd (voliteľné)": "Current (optional)",
+    "Zostávajúci čas (voliteľné)": "Time remaining (optional)",
+    "vyber senzory": "choose sensors",
+    "Názov": "Name",
+    "Popis (napr. 280 Ah)": "Description (e.g. 280 Ah)",
+    "Rozdiel článkov": "Cell voltage delta",
+    "Počet cyklov (pod názvom)": "Cycle count (under the name)",
+    "Vyrovnávanie článkov (ikona ⚖ pri názve)": "Cell balancing (⚖ icon next to the name)",
+    "Nová hodnota": "New value",
+    "vyber entitu": "choose an entity",
+    "Entita": "Entity",
+    "Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.": "Battery: main meter (SOC, power) and a table of individual BMS."
+  };
+
   const VERSION = '1.1.2';
   const G = '#30d158', R = '#ff6961', O = '#ff9f0a', MUTE = 'var(--secondary-text-color)';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -91,10 +141,10 @@
     static getConfigElement() { return document.createElement('igy-battery-card-editor'); }
     static getStubConfig(hass) {
       const st = hass ? hass.states : {}, f = (re) => Object.keys(st).find((id) => re.test(id));
-      return { title: 'Batéria', main: { soc: f(/^sensor\..*battery.*soc|^sensor\..*_soc/) || '', power: f(/^sensor\..*battery.*power/) || '' }, packs: [] };
+      return { title: _('Batéria'), main: { soc: f(/^sensor\..*battery.*soc|^sensor\..*_soc/) || '', power: f(/^sensor\..*battery.*power/) || '' }, packs: [] };
     }
-    setConfig(c) { if (!c) throw new Error('Chybná konfigurácia.'); this._cfg = normalize(c); this._sig = ''; if (this._hass) this._render(); }
-    set hass(h) { this._hass = h; if (this._cfg) this._render(); }
+    setConfig(c) { if (!c) throw new Error(_('Chybná konfigurácia.')); this._cfg = normalize(c); this._sig = ''; if (this._hass) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; if (this._cfg) this._render(); }
     getCardSize() { return 3 + (this._cfg ? this._cfg.packs.length : 0); }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
@@ -111,7 +161,7 @@
     _dc(d) { const t = this._cfg.delta_warn || [0.02, 0.05]; return d == null ? MUTE : d < t[0] ? G : d < t[1] ? O : R; }
     _state(id) {
       const s = this._s(id); if (!s) return '–';
-      if (s.state === 'on') return 'zapnutý'; if (s.state === 'off') return 'vypnutý';
+      if (s.state === 'on') return _('zapnutý'); if (s.state === 'off') return _('vypnutý');
       try { if (this._hass.formatEntityState) return this._hass.formatEntityState(s); } catch (_) { }
       const u = s.attributes.unit_of_measurement; return s.state + (u ? ' ' + u : '');
     }
@@ -133,13 +183,13 @@
           const el = e.target.closest('[data-more]'); if (el && el.dataset.more) this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: el.dataset.more }, bubbles: true, composed: true }));
         });
       }
-      let h = `<div class="hl">${BAT}<span>${esc(c.title || 'Batéria')}</span></div>`;
+      let h = `<div class="hl">${BAT}<span>${esc(c.title || _('Batéria'))}</span></div>`;
       // hlavný merač
       if (m.soc || m.power) {
         const soc = this._n(m.soc), pw = this._w(m.power), v = this._V(m.voltage), a = this._n(m.current), tt = m.time ? this._dur(m.time) : null;
-        const state = pw == null ? '' : pw > 20 ? 'nabíja' : pw < -20 ? 'vybíja' : 'stojí';
+        const state = pw == null ? '' : pw > 20 ? _('nabíja') : pw < -20 ? _('vybíja') : _('stojí');
         h += `<div class="box main"><div class="m1"><div class="soc" data-more="${esc(m.soc || '')}">${soc == null ? '–' : Math.round(soc)}<small>%</small></div>`
-          + `<div class="pw" data-more="${esc(m.power || '')}"><b style="color:${this._pc(pw)}">${this._fw(pw)}</b><small>${state}${tt ? (pw < -20 ? ' · vydrží ' : ' · ') + tt : ''}</small></div></div>`
+          + `<div class="pw" data-more="${esc(m.power || '')}"><b style="color:${this._pc(pw)}">${this._fw(pw)}</b><small>${state}${tt ? (pw < -20 ? ' · ' + _('vydrží') + ' ' : ' · ') + tt : ''}</small></div></div>`
           + `<div class="sb${pw != null && pw > 20 ? ' chg' : ''}" data-more="${esc(m.soc || '')}"><i style="width:${Math.max(0, Math.min(100, soc || 0)).toFixed(1)}%;background-color:${this._sc(soc)}"></i></div>`
           + `<div class="m2">${v != null ? `<span data-more="${esc(m.voltage)}"><b>${this._f(v, 2)}</b> V</span>` : ''}${a != null ? `<span data-more="${esc(m.current)}"><b>${this._f(a, 1)}</b> A</span>` : ''}<span class="src">${esc(m.name || '')}</span></div></div>`;
       }
@@ -147,7 +197,7 @@
       if (c.packs.length) {
         const cols = COLS.filter((x) => c.packs.some((p) => p[x.k]));
         const pmax = +c.pack_max || 5000;
-        h += `<div class="box" style="--cols:${cols.map((x) => x.w).join(' ')}"><div class="th"><div>BMS</div>${cols.map((x) => `<span>${x.t}</span>`).join('')}</div>`;
+        h += `<div class="box" style="--cols:${cols.map((x) => x.w).join(' ')}"><div class="th"><div>BMS</div>${cols.map((x) => `<span>${_(x.t)}</span>`).join('')}</div>`;
         let sum = 0, any = false;
         c.packs.forEach((p, i) => {
           const cell = (x) => {
@@ -167,20 +217,20 @@
           // druhý riadok: popis, cykly, vyrovnávanie článkov
           const cy = this._n(p.cycles), bs = this._s(p.balancing), bv = bs ? (bs.state === 'on' ? 1 : parseFloat(bs.state)) : NaN, bal = !isNaN(bv) && bv > 0;
           // JK BMS (syssi/esphome-jk-bms): 0 = vypnuté, 1 = vyrovnáva pri nabíjaní, 2 = pri vybíjaní
-          const balT = bv === 2 ? 'vyrovnáva články pri vybíjaní' : bv === 1 ? 'vyrovnáva články pri nabíjaní' : 'vyrovnáva články';
-          const sub = [p.info ? esc(p.info) : '', cy != null ? Math.round(cy) + ' cyklov' : ''].filter(Boolean).join(' · ');
+          const balT = bv === 2 ? _('vyrovnáva články pri vybíjaní') : bv === 1 ? _('vyrovnáva články pri nabíjaní') : _('vyrovnáva články');
+          const sub = [p.info ? esc(p.info) : '', cy != null ? _('{0} cyklov', Math.round(cy)) : ''].filter(Boolean).join(' · ');
           h += `<div class="tr" data-more="${esc(p.power || p.soc || '')}"><div class="n">${esc(p.name || 'BMS ' + (i + 1))}${bal ? ` <span class="bal" title="${balT}">⚖</span>` : ''}${sub ? `<small>${sub}</small>` : ''}</div>${cols.map(cell).join('')}</div>`;
         });
         if (any && c.packs.length > 1) {
           const mw = this._w(m.power);
-          h += `<div class="sum"><span>Súčet BMS <b style="color:${this._pc(sum)}">${this._fw(sum).replace(/<\/?small>/g, ' ')}</b></span>${mw != null ? `<span>rozdiel voči ${esc(m.name || 'meraču')} <b>${this._fw(sum - mw).replace(/<\/?small>/g, ' ')}</b></span>` : ''}</div>`;
+          h += `<div class="sum"><span>${_('Súčet BMS')} <b style="color:${this._pc(sum)}">${this._fw(sum).replace(/<\/?small>/g, ' ')}</b></span>${mw != null ? `<span>${_('rozdiel voči {0}', esc(m.name || _('meraču')))} <b>${this._fw(sum - mw).replace(/<\/?small>/g, ' ')}</b></span>` : ''}</div>`;
         }
         h += '</div>';
       }
       if (c.extras.length) {
         h += `<div class="box ex">${c.extras.map((x) => { const s = this._s(x.entity); return `<div data-more="${esc(x.entity)}">${esc(x.name || (s && s.attributes.friendly_name) || x.entity)}<b>${esc(this._state(x.entity))}</b></div>`; }).join('')}</div>`;
       }
-      if (!m.soc && !m.power && !c.packs.length && !c.extras.length) h += '<div class="empty">Nastav hlavný merač a BMS v nastaveniach karty.</div>';
+      if (!m.soc && !m.power && !c.packs.length && !c.extras.length) h += '<div class="empty">' + _('Nastav hlavný merač a BMS v nastaveniach karty.') + '</div>';
       const box = this.shadowRoot.getElementById('c'); if (box.__h !== h) { box.__h = h; box.innerHTML = h; }
     }
   }
@@ -213,7 +263,7 @@
 
   class HomeBatteryCardEditor extends HTMLElement {
     setConfig(config) { const c = normalize(config); if (this._last && JSON.stringify(c) === this._last) return; this._cfg = c; this._last = JSON.stringify(c); if (this._hass) this._build(); }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-battery-card' }, this._cfg)));
       if (!c.packs.length) delete c.packs; if (!c.extras.length) delete c.extras;
@@ -229,29 +279,29 @@
     _set(o, v, keys) { keys.forEach((k) => { if (v[k] !== '' && v[k] != null && v[k] !== false) o[k] = v[k]; else delete o[k]; }); }
     _build() {
       const c = this._cfg, open = this._open || (this._open = new Set());
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Hlavný merač (celá batéria)</div><div id="main"></div>
-        <div class="sec">Jednotlivé BMS</div><div class="hint">Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.</div><div class="items" id="packs"></div><button class="btn" id="addp">+ Pridať BMS</button>
-        <div class="sec">Ďalšie hodnoty</div><div class="items" id="extras"></div><button class="btn" id="adde">+ Pridať hodnotu</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Hlavný merač (celá batéria)')}</div><div id="main"></div>
+        <div class="sec">${_('Jednotlivé BMS')}</div><div class="hint">${_('Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.')}</div><div class="items" id="packs"></div><button class="btn" id="addp">${_('+ Pridať BMS')}</button>
+        <div class="sec">${_('Ďalšie hodnoty')}</div><div class="items" id="extras"></div><button class="btn" id="adde">${_('+ Pridať hodnotu')}</button></div>`;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', pack_max: c.pack_max || 5000 },
         [{ name: 'title', selector: { text: {} } }, { name: 'pack_max', selector: { number: { min: 500, max: 30000, step: 100, mode: 'box', unit_of_measurement: 'W' } } }],
-        { title: 'Nadpis', pack_max: 'Plný pásik výkonu BMS' }, null, (v) => { this._set(c, v, ['title']); if (v.pack_max && +v.pack_max !== 5000) c.pack_max = +v.pack_max; else delete c.pack_max; this._emit(); }));
+        { title: _('Nadpis'), pack_max: _('Plný pásik výkonu BMS') }, null, (v) => { this._set(c, v, ['title']); if (v.pack_max && +v.pack_max !== 5000) c.pack_max = +v.pack_max; else delete c.pack_max; this._emit(); }));
       const mk = ['name', 'soc', 'power', 'voltage', 'current', 'time'];
       this.querySelector('#main').appendChild(this._form(Object.assign({}, ...mk.map((k) => ({ [k]: c.main[k] || '' }))),
         [{ name: 'name', selector: { text: {} } }, ENT('soc'), ENT('power'), ENT('voltage'), ENT('current'), ENT('time')],
-        { name: 'Názov (napr. SmartShunt)', soc: 'SOC', power: 'Výkon (+ nabíja / − vybíja)', voltage: 'Napätie', current: 'Prúd (voliteľné)', time: 'Zostávajúci čas (voliteľné)' }, null,
+        { name: _('Názov (napr. SmartShunt)'), soc: 'SOC', power: _('Výkon (+ nabíja / − vybíja)'), voltage: _('Napätie'), current: _('Prúd (voliteľné)'), time: _('Zostávajúci čas (voliteľné)') }, null,
         (v) => { this._set(c.main, v, mk); this._emit(); }));
       const pk = ['name', 'info', 'power', 'soc', 'voltage', 'current', 'delta', 'temp', 'cycles', 'balancing'];
       const pb = this.querySelector('#packs');
-      c.packs.forEach((p, i) => pb.appendChild(this._item(c.packs, i, p.name || 'BMS ' + (i + 1), [p.info, p.power].filter(Boolean).join(' · ') || 'vyber senzory', 'p' + i,
+      c.packs.forEach((p, i) => pb.appendChild(this._item(c.packs, i, p.name || 'BMS ' + (i + 1), [p.info, p.power].filter(Boolean).join(' · ') || _('vyber senzory'), 'p' + i,
         Object.assign({}, ...pk.map((k) => ({ [k]: p[k] || '' }))),
         [{ name: 'name', selector: { text: {} } }, { name: 'info', selector: { text: {} } }, ENT('power'), ENT('soc'), ENT('voltage'), ENT('current'), ENT('delta'), ENT('temp'), ENT('cycles'), ENT('balancing')],
-        { name: 'Názov', info: 'Popis (napr. 280 Ah)', power: 'Výkon', soc: 'SOC', voltage: 'Napätie', current: 'Prúd', delta: 'Rozdiel článkov', temp: 'Teplota', cycles: 'Počet cyklov (pod názvom)', balancing: 'Vyrovnávanie článkov (ikona ⚖ pri názve)' },
+        { name: _('Názov'), info: _('Popis (napr. 280 Ah)'), power: _('Výkon'), soc: 'SOC', voltage: _('Napätie'), current: _('Prúd'), delta: _('Rozdiel článkov'), temp: _('Teplota'), cycles: _('Počet cyklov (pod názvom)'), balancing: _('Vyrovnávanie článkov (ikona ⚖ pri názve)') },
         (v, it) => { this._set(p, v, pk); it.querySelector('.tx b').textContent = p.name || 'BMS ' + (i + 1); this._emit(); })));
       this.querySelector('#addp').onclick = () => { c.packs.push({ name: 'BMS ' + (c.packs.length + 1) }); open.add('p' + (c.packs.length - 1)); this._emit(); this._build(); };
       const eb = this.querySelector('#extras');
-      c.extras.forEach((x, i) => { const s = x.entity && this._hass.states[x.entity]; eb.appendChild(this._item(c.extras, i, x.name || (s && s.attributes.friendly_name) || x.entity || 'Nová hodnota', x.entity || 'vyber entitu', 'e' + i,
-        { entity: x.entity || '', name: x.name || '' }, [ENT('entity'), { name: 'name', selector: { text: {} } }], { entity: 'Entita', name: 'Názov' },
-        (v, it) => { this._set(x, v, ['entity', 'name']); it.querySelector('.tx b').textContent = x.name || x.entity || 'Nová hodnota'; this._emit(); })); });
+      c.extras.forEach((x, i) => { const s = x.entity && this._hass.states[x.entity]; eb.appendChild(this._item(c.extras, i, x.name || (s && s.attributes.friendly_name) || x.entity || _('Nová hodnota'), x.entity || _('vyber entitu'), 'e' + i,
+        { entity: x.entity || '', name: x.name || '' }, [ENT('entity'), { name: 'name', selector: { text: {} } }], { entity: _('Entita'), name: _('Názov') },
+        (v, it) => { this._set(x, v, ['entity', 'name']); it.querySelector('.tx b').textContent = x.name || x.entity || _('Nová hodnota'); this._emit(); })); });
       this.querySelector('#adde').onclick = () => { c.extras.push({}); open.add('e' + (c.extras.length - 1)); this._emit(); this._build(); };
     }
     _item(arr, i, title, sub, key, data, schema, L, cb) {
@@ -272,6 +322,6 @@
   if (!customElements.get('igy-battery-card')) customElements.define('igy-battery-card', HomeBatteryCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-battery-card'))
-    window.customCards.push({ type: 'igy-battery-card', name: 'Igy Battery Card', description: 'Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.', preview: true });
+    window.customCards.push({ type: 'igy-battery-card', name: 'Igy Battery Card', description: _('Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.'), preview: true });
   console.info('%c IGY-BATTERY-CARD %c ' + VERSION + ' ', 'background:#30d158;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

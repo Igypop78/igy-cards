@@ -15,11 +15,41 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Zadaj entitu počasia (entity: weather.…)": "Set a weather entity (entity: weather.…)",
+    "Teraz": "Now",
+    "Zajtra": "Tomorrow",
+    "východ": "sunrise",
+    "západ": "sunset",
+    "Dnes": "Today",
+    "Počasie": "Weather",
+    "Predpoveď výroby FVE (Solcast)": "Solar production forecast (Solcast)",
+    "Entita počasia": "Weather entity",
+    "Miesto (voliteľné)": "Location (optional)",
+    "Vonkajší teplomer (voliteľné)": "Outdoor thermometer (optional)",
+    "Predpoveď na dnes": "Forecast for today",
+    "Zostáva dnes": "Remaining today",
+    "Predpoveď na ďalšie dni (zajtra, +2, +3)": "Forecast for the next days (tomorrow, +2, +3)",
+    "Skutočná výroba – výkon (voliteľné)": "Actual production – power (optional)",
+    "Zbaliteľná": "Collapsible",
+    "Na začiatku zbalená": "Start collapsed",
+    "Plný prstenec (kWh za hodinu)": "Full ring (kWh per hour)",
+    "Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.": "E.g. Met.no or Open-Meteo – must provide hourly and daily forecasts.",
+    "Zobrazí sa pod stavom počasia. Prázdne = názov entity.": "Shown in the header. Empty = entity name.",
+    "Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.": "If you have one, the card shows its temperature and today’s history instead of forecast data.",
+    "Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.": "Solcast “forecast today” – hourly values come from the detailedForecast attribute.",
+    "V poradí zajtra, pozajtra, popozajtra.": "In order: tomorrow, day after, the day after that.",
+    "Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.": "The past part of the day is drawn from actual production.",
+    "Zbalená ukazuje len hlavičku a graf dňa.": "Collapsed shows only the header and the hourly strip.",
+    "Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).": "Weather with an hourly strip and solar production forecast (Solcast)."
+  };
+
   const VERSION = '1.5.0';
   const COL = { sol: '#ff9f0a', rain: '#64b5ff' };
-  const COND = { 'clear-night': 'Jasno', cloudy: 'Zamračené', exceptional: 'Výnimočné počasie', fog: 'Hmla', hail: 'Krupobitie', lightning: 'Búrka',
-    'lightning-rainy': 'Búrka s dažďom', partlycloudy: 'Polojasno', pouring: 'Lejak', rainy: 'Dážď', snowy: 'Sneženie', 'snowy-rainy': 'Dážď so snehom',
-    sunny: 'Slnečno', windy: 'Veterno', 'windy-variant': 'Veterno a oblačno' };
   const DIRS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   const ui = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
@@ -140,7 +170,7 @@
       return c;
     }
     setConfig(c) {
-      if (!c || !c.entity) throw new Error('Zadaj entitu počasia (entity: weather.…)');
+      if (!c || !c.entity) throw new Error(_('Zadaj entitu počasia (entity: weather.…)'));
       const old = this._cfg;
       this._cfg = Object.assign({ collapsible: true }, c);
       this._built = false; this._col = null;
@@ -148,7 +178,7 @@
       if (old && (old.solar_power !== c.solar_power || old.temperature_sensor !== c.temperature_sensor)) this._hist = null;
       if (this._hass) { this._render(); this._start(); }
     }
-    set hass(h) { const first = !this._hass; this._hass = h; if (!this._cfg) return; this._render(); if (first) this._start(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; if (!this._cfg) return; this._render(); if (first) this._start(); }
     connectedCallback() { if (this._hass && this._cfg) { this._start(); requestAnimationFrame(() => this._toNow(false)); } }
     disconnectedCallback() { clearTimeout(this._backT); this._unsub(); clearInterval(this._hT); this._hT = null; }
     getCardSize() { return this._col ? 4 : 8; }
@@ -265,17 +295,17 @@
         if (!past && f) { const pp = f.f.precipitation_probability, mm = f.f.precipitation; rain = pp != null ? (pp >= 20 ? pp + ' %' : '') : (mm >= 0.1 ? this._nf(mm, 1) + ' mm' : ''); }
         const pv = past && pvA[t] != null ? pvA[t] : pvF[t] != null ? pvF[t] : (past ? pvA[t] : null);
         const dm = new Date(t);
-        cols.push({ t, cur, past, temp, cond, rain, pv, real: past && pvA[t] != null, lab: cur ? 'Teraz' : dm.getHours() === 0 && t > t0 ? 'Zajtra' : String(dm.getHours()).padStart(2, '0') });
+        cols.push({ t, cur, past, temp, cond, rain, pv, real: past && pvA[t] != null, day: !cur && dm.getHours() === 0 && t > t0, lab: cur ? _('Teraz') : dm.getHours() === 0 && t > t0 ? _('Zajtra') : String(dm.getHours()).padStart(2, '0') });
         // východ / západ slnka v tejto hodine
         if (sun) [[sun.rise, 'rise'], [sun.set, 'set'], [sun.rise && sun.rise + 86400000, 'rise'], [sun.set && sun.set + 86400000, 'set']].forEach(([st, k]) => {
           if (st && st >= t && st < t + HR && st <= tEnd) cols.push({ sun: k, t: st, past: st < now, lab: this._hm(st) });
         });
       }
       const html = cols.map((x) => {
-        if (x.sun) return `<div class="hc sun${x.past ? ' past' : ''}"><div class="h">${x.lab}</div><i>${x.sun === 'rise' ? SUNRISE : SUNSET}</i><div class="t sm">${x.sun === 'rise' ? 'východ' : 'západ'}</div><div class="r"></div></div>`;
+        if (x.sun) return `<div class="hc sun${x.past ? ' past' : ''}"><div class="h">${x.lab}</div><i>${x.sun === 'rise' ? SUNRISE : SUNSET}</i><div class="t sm">${x.sun === 'rise' ? _('východ') : _('západ')}</div><div class="r"></div></div>`;
         // prstenec: plný kruh = ring_max kWh za hodinu (predvolene 9)
         const rg = x.pv != null && x.pv >= 0.05 ? Math.max(3, Math.min(100, x.pv / (+this._cfg.ring_max || 9) * 100)) : 0;
-        return `<div class="hc${x.cur ? ' now' : ''}${x.past ? ' past' : ''}${x.lab === 'Zajtra' ? ' day' : ''}"${x.cur ? ' id="nowc"' : ''}>
+        return `<div class="hc${x.cur ? ' now' : ''}${x.past ? ' past' : ''}${x.day ? ' day' : ''}"${x.cur ? ' id="nowc"' : ''}>
           <div class="h">${x.lab}</div><i>${x.cond ? wicon(x.cond, this._isNight(x.t + 1800000, sun)) : ''}${rg ? `<svg class="ring" viewBox="0 0 40 40"><circle class="rt" cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="18" pathLength="100" stroke-dasharray="${rg.toFixed(1)} 100"/></svg><em class="pk">${this._nf(x.pv, x.pv < 10 ? 1 : 0)}</em>` : ''}</i>
           <div class="t">${x.temp != null ? Math.round(x.temp) + '°' : '–'}</div><div class="r">${x.rain}</div></div>`;
       }).join('');
@@ -357,7 +387,7 @@
       const days = rows.map((x, j) => {
         const isT = today1 && j === 0, i = today1 ? j - 1 : j;
         const f = x.f, d = new Date(x.t), lo2 = f.templow != null ? f.templow : f.temperature, hi2 = f.temperature, l = (lo2 - gmin) / gr * 100, w = Math.max(3, (hi2 - lo2) / gr * 100);
-        const nm = isT ? 'Dnes' : ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'][d.getDay()];
+        const nm = isT ? _('Dnes') : (LANG === 'sk' ? ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])[d.getDay()];
         const pr = f.precipitation_probability != null ? (f.precipitation_probability >= 20 ? f.precipitation_probability + ' %' : '') : (f.precipitation >= 0.5 ? this._nf(f.precipitation, f.precipitation < 10 ? 1 : 0) + ' mm' : '');
         const pv = isT ? pvT : dkwh[i], pid = isT ? c.solar_today : c.solar_days && c.solar_days[i];
         const dot = isT && curT != null ? `<em style="left:${((curT - gmin) / gr * 100).toFixed(1)}%"></em>` : '';
@@ -366,7 +396,7 @@
           <span class="pv"${pid ? ` data-more="${pid}"` : ''}>${pv != null ? `${this._nf(pv, 1)}<small>kWh</small><u><i style="width:${Math.min(100, pv / dmax * 100).toFixed(0)}%"></i></u>` : ''}</span></div>`;
       }).join('');
       const html = `
-        <div class="top"><span class="ic">${wicon(ws.state, night)}</span><span class="ttl">${esc(c.title || 'Počasie')}</span>${c.collapsible !== false ? `<span class="chev">${ui(UI.chev)}</span>` : ''}</div>
+        <div class="top"><span class="ic">${wicon(ws.state, night)}</span><span class="ttl">${esc(c.title || _('Počasie'))}</span>${c.collapsible !== false ? `<span class="chev">${ui(UI.chev)}</span>` : ''}</div>
         <div class="box gb">
           <div class="sw" id="sw"><div class="strip">${ch.html}</div></div>
         </div>
@@ -390,7 +420,7 @@
   class HomeWeatherCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
     _data() { const c = this._cfg || {}; return Object.assign({ collapsible: true, collapsed: true }, c); }
-    set hass(h) {
+    set hass(h) { setLang(h);
       this._hass = h;
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
@@ -399,16 +429,16 @@
           { name: 'entity', required: true, selector: { entity: { domain: 'weather' } } },
           { name: 'title', selector: { text: {} } },
           sens('temperature_sensor'),
-          { type: 'expandable', name: '', title: 'Predpoveď výroby FVE (Solcast)', icon: 'mdi:solar-power-variant', expanded: true, schema: [
-            sens('solar_today'), sens('solar_remaining'), { name: 'solar_days', selector: { entity: { domain: 'sensor', multiple: true } } }, sens('solar_power')] },
+          { type: 'expandable', name: '', title: _('Predpoveď výroby FVE (Solcast)'), icon: 'mdi:solar-power-variant', expanded: true, schema: [
+            sens('solar_today'), sens('solar_remaining'), { name: 'solar_days', selector: { entity: { domain: 'sensor', multiple: true } } }, sens('solar_power'), { name: 'ring_max', selector: { number: { min: 1, max: 50, step: 0.5, mode: 'box', unit_of_measurement: 'kWh' } } }] },
           { type: 'grid', name: '', schema: [{ name: 'collapsible', selector: { boolean: {} } }, { name: 'collapsed', selector: { boolean: {} } }] }
         ];
-        const L = { entity: 'Entita počasia', title: 'Miesto (voliteľné)', temperature_sensor: 'Vonkajší teplomer (voliteľné)', solar_today: 'Predpoveď na dnes', solar_remaining: 'Zostáva dnes',
-          solar_days: 'Predpoveď na ďalšie dni (zajtra, +2, +3)', solar_power: 'Skutočná výroba – výkon (voliteľné)', collapsible: 'Zbaliteľná', collapsed: 'Na začiatku zbalená' };
-        const Hh = { entity: 'Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.', title: 'Zobrazí sa pod stavom počasia. Prázdne = názov entity.',
-          temperature_sensor: 'Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.',
-          solar_today: 'Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.', solar_days: 'V poradí zajtra, pozajtra, popozajtra.',
-          solar_power: 'Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.', collapsed: 'Zbalená ukazuje len hlavičku a graf dňa.' };
+        const L = { entity: _('Entita počasia'), title: _('Miesto (voliteľné)'), temperature_sensor: _('Vonkajší teplomer (voliteľné)'), solar_today: _('Predpoveď na dnes'), solar_remaining: _('Zostáva dnes'),
+          solar_days: _('Predpoveď na ďalšie dni (zajtra, +2, +3)'), solar_power: _('Skutočná výroba – výkon (voliteľné)'), collapsible: _('Zbaliteľná'), collapsed: _('Na začiatku zbalená'), ring_max: _('Plný prstenec (kWh za hodinu)') };
+        const Hh = { entity: _('Napr. Met.no alebo Open-Meteo – musí vedieť hodinovú a dennú predpoveď.'), title: _('Zobrazí sa pod stavom počasia. Prázdne = názov entity.'),
+          temperature_sensor: _('Ak ho máš, karta ukáže jeho teplotu a dnešný priebeh namiesto údajov z predpovede.'),
+          solar_today: _('Solcast „forecast today“ – z atribútu detailedForecast sa kreslí krivka.'), solar_days: _('V poradí zajtra, pozajtra, popozajtra.'),
+          solar_power: _('Uplynulá časť dňa sa nakreslí sýtou farbou podľa skutočnosti.'), collapsed: _('Zbalená ukazuje len hlavičku a graf dňa.') };
         f.computeLabel = (x) => L[x.name] || x.title || x.name;
         f.computeHelper = (x) => Hh[x.name];
         f.addEventListener('value-changed', (e) => {
@@ -427,6 +457,6 @@
   if (!customElements.get('igy-weather-card')) customElements.define('igy-weather-card', HomeWeatherCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-weather-card'))
-    window.customCards.push({ type: 'igy-weather-card', name: 'Igy Weather Card', description: 'Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).', preview: true });
+    window.customCards.push({ type: 'igy-weather-card', name: 'Igy Weather Card', description: _('Počasie s grafom dňa a predpoveďou výroby FVE (Solcast).'), preview: true });
   console.info('%c IGY-WEATHER-CARD %c ' + VERSION + ' ', 'background:#64b5ff;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

@@ -28,6 +28,42 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Spotreba po okruhoch": "Power by circuit",
+    "Skupina": "Group",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "Fázy": "Phases",
+    "Skupiny ističov": "Breaker groups",
+    "Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.": "Tap a group to edit its name and circuits. Use the arrows to reorder. Groups are collapsed in the card by default.",
+    "+ Pridať skupinu": "+ Add group",
+    "Nadpis": "Title",
+    "Celková spotreba domu (voliteľné)": "Total house power (optional)",
+    "Plný pásik fázy": "Full phase bar",
+    "Plný pásik okruhu": "Full circuit bar",
+    "Bez nej sa zobrazí súčet fáz.": "Without it the sum of the phases is shown.",
+    "Vyššie": "Move up",
+    "Nižšie": "Move down",
+    "Upraviť": "Edit",
+    "Odstrániť": "Remove",
+    "predvolene rozbalená": "expanded by default",
+    "Názov skupiny": "Group name",
+    "Súčet skupiny (voliteľné)": "Group total (optional)",
+    "Predvolene rozbalená": "Expanded by default",
+    "Bez neho karta sčíta okruhy v skupine.": "Without it the card adds up the circuits in the group.",
+    "+ Pridať okruh": "+ Add circuit",
+    "Nový okruh": "New circuit",
+    "entita neexistuje": "entity does not exist",
+    "vyber entitu": "choose an entity",
+    "Senzor výkonu okruhu": "Circuit power sensor",
+    "Názov (napr. čo je na okruhu)": "Name (e.g. what is on the circuit)",
+    "Fáza": "Phase",
+    "Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.": "Power per circuit and phase – collapsible breaker groups."
+  };
+
   const VERSION = '1.1.0';
   const PH = { L1: '#d6a36b', L2: '#a3acbd', L3: '#6aa8ff' };
   const COL = { low: '#34d399', mid: '#818cf8', high: '#f87171' };
@@ -91,13 +127,13 @@
 
   class HomeCircuitsCard extends HTMLElement {
     static getConfigElement() { return document.createElement('igy-circuits-card-editor'); }
-    static getStubConfig() { return { title: 'Spotreba po okruhoch', groups: [{ name: 'Skupina 1', rows: [] }] }; }
+    static getStubConfig() { return { title: _('Spotreba po okruhoch'), groups: [{ name: _('Skupina') + ' 1', rows: [] }] }; }
     setConfig(c) {
-      if (!c) throw new Error('Chybná konfigurácia.');
+      if (!c) throw new Error(_('Chybná konfigurácia.'));
       this._cfg = normalize(c); this._built = false;
       if (this._hass) this._render();
     }
-    set hass(h) { this._hass = h; if (this._cfg) this._render(); }
+    set hass(h) { setLang(h); this._hass = h; if (this._cfg) this._render(); }
     getCardSize() { return 2 + (this._cfg ? this._cfg.groups.length : 1); }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
@@ -122,7 +158,7 @@
     _build() {
       const c = this._cfg;
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-      let h = `<div class="hl">${BOLT}<span>${esc(c.title || 'Spotreba po okruhoch')}</span><span class="tot" data-more="${esc(c.total || '')}"><span id="tv">–</span><small id="tu">W</small></span></div>`;
+      let h = `<div class="hl">${BOLT}<span>${esc(c.title || _('Spotreba po okruhoch'))}</span><span class="tot" data-more="${esc(c.total || '')}"><span id="tv">–</span><small id="tu">W</small></span></div>`;
       if (c.phases.length) {
         h += `<div class="box ph" style="--n:${c.phases.length}">` + c.phases.map((p, i) => {
           const n = p.name || 'L' + (i + 1), col = p.color || PH[n] || PH['L' + (i + 1)] || '#a3acbd';
@@ -131,7 +167,7 @@
       }
       c.groups.forEach((g, gi) => {
         const ph = [...new Set(g.rows.map((r) => r.phase).filter((x) => PH[x]))];
-        h += `<div class="box grp${this._isOpen(g, gi) ? ' open' : ''}" data-g="${gi}"><div class="gh" data-tg="${gi}"><span class="gn">${esc(g.name || 'Skupina ' + (gi + 1))}</span>`
+        h += `<div class="box grp${this._isOpen(g, gi) ? ' open' : ''}" data-g="${gi}"><div class="gh" data-tg="${gi}"><span class="gn">${esc(g.name || _('Skupina') + ' ' + (gi + 1))}</span>`
           + `<span class="dots">${ph.map((x) => `<i style="--c:${PH[x]}" title="${x}"></i>`).join('')}</span>`
           + `<span class="gv" data-gv="${gi}">–</span><span class="ch">${CHEV}</span></div><div class="rows">`
           + g.rows.map((r, ri) => {
@@ -232,7 +268,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) { const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
+    set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       // HA konfiguráciu zmrazí – posiela sa hlboká kópia
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-circuits-card' }, this._cfg)));
@@ -250,16 +286,16 @@
     _openSet() { return this._open || (this._open = new Set()); }
     _build() {
       const c = this._cfg;
-      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">Fázy</div><div id="ph"></div>
-        <div class="sec">Skupiny ističov</div><div class="hint">Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.</div>
-        <div class="items" id="items"></div><button class="btn" id="addg">+ Pridať skupinu</button></div>`;
+      this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Fázy')}</div><div id="ph"></div>
+        <div class="sec">${_('Skupiny ističov')}</div><div class="hint">${_('Ťukni na skupinu pre názov a jej okruhy. Poradie zmeníš šípkami. Skupiny sú v karte predvolene zbalené.')}</div>
+        <div class="items" id="items"></div><button class="btn" id="addg">${_('+ Pridať skupinu')}</button></div>`;
       const ent = (n) => ({ name: n, selector: { entity: { domain: 'sensor' } } });
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', total: c.total || '', phase_max: c.phase_max || 3680, circuit_max: c.circuit_max || 3680 },
         [{ name: 'title', selector: { text: {} } }, ent('total'),
           { type: 'grid', name: '', schema: [{ name: 'phase_max', selector: { number: { min: 500, max: 20000, step: 10, mode: 'box', unit_of_measurement: 'W' } } },
             { name: 'circuit_max', selector: { number: { min: 100, max: 20000, step: 10, mode: 'box', unit_of_measurement: 'W' } } }] }],
-        { title: 'Nadpis', total: 'Celková spotreba domu (voliteľné)', phase_max: 'Plný pásik fázy', circuit_max: 'Plný pásik okruhu' },
-        { total: 'Bez nej sa zobrazí súčet fáz.', phase_max: '16 A × 230 V = 3680 W' },
+        { title: _('Nadpis'), total: _('Celková spotreba domu (voliteľné)'), phase_max: _('Plný pásik fázy'), circuit_max: _('Plný pásik okruhu') },
+        { total: _('Bez nej sa zobrazí súčet fáz.'), phase_max: '16 A × 230 V = 3680 W' },
         (v) => {
           ['title', 'total'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; });
           ['phase_max', 'circuit_max'].forEach((k) => { if (v[k] && +v[k] !== 3680) c[k] = +v[k]; else delete c[k]; });
@@ -271,10 +307,10 @@
       }));
       const box = this.querySelector('#items'), open = this._openSet();
       c.groups.forEach((g, gi) => box.appendChild(this._group(g, gi, open.has('g' + gi))));
-      this.querySelector('#addg').onclick = () => { c.groups.push({ name: 'Skupina ' + (c.groups.length + 1), rows: [] }); open.add('g' + (c.groups.length - 1)); this._emit(); this._build(); };
+      this.querySelector('#addg').onclick = () => { c.groups.push({ name: _('Skupina') + ' ' + (c.groups.length + 1), rows: [] }); open.add('g' + (c.groups.length - 1)); this._emit(); this._build(); };
     }
     _head(it, title, sub, warn, onUp, onDn, onDel, upDis, dnDis, key) {
-      it.innerHTML = `<div class="ih"><span class="tx"><b></b><small></small></span><button class="ib up" title="Vyššie">${ICO.up}</button><button class="ib dn" title="Nižšie">${ICO.dn}</button><button class="ib exp" title="Upraviť">${ICO.down}</button><button class="ib del" title="Odstrániť">${ICO.del}</button></div><div class="body"></div>`;
+      it.innerHTML = `<div class="ih"><span class="tx"><b></b><small></small></span><button class="ib up" title="${_('Vyššie')}">${ICO.up}</button><button class="ib dn" title="${_('Nižšie')}">${ICO.dn}</button><button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button><button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button></div><div class="body"></div>`;
       const ih = it.querySelector(':scope > .ih');
       ih.querySelector('.tx b').innerHTML = title; const sm = ih.querySelector('.tx small'); sm.textContent = sub; sm.className = warn ? 'warn' : '';
       const tog = () => { it.classList.toggle('open'); const o = this._openSet(); if (it.classList.contains('open')) o.add(key); else o.delete(key); };
@@ -286,17 +322,17 @@
     _group(g, gi, isOpen) {
       const c = this._cfg, it = document.createElement('div'); it.className = 'it' + (isOpen ? ' open' : '');
       const mv = (d) => () => { const j = gi + d; [c.groups[gi], c.groups[j]] = [c.groups[j], c.groups[gi]]; this._open = new Set(); this._emit(); this._build(); };
-      const body = this._head(it, esc(g.name || 'Skupina ' + (gi + 1)), g.rows.length + ' ' + (g.rows.length === 1 ? 'okruh' : g.rows.length >= 2 && g.rows.length <= 4 ? 'okruhy' : 'okruhov') + (g.expanded ? ' · predvolene rozbalená' : ''), false,
+      const nr = g.rows.length, body = this._head(it, esc(g.name || _('Skupina') + ' ' + (gi + 1)), nr + ' ' + (LANG === 'sk' ? (nr === 1 ? 'okruh' : nr >= 2 && nr <= 4 ? 'okruhy' : 'okruhov') : (nr === 1 ? 'circuit' : 'circuits')) + (g.expanded ? ' · ' + _('predvolene rozbalená') : ''), false,
         mv(-1), mv(1), () => { c.groups.splice(gi, 1); this._open = new Set(); this._emit(); this._build(); }, gi === 0, gi === c.groups.length - 1, 'g' + gi);
       body.appendChild(this._form({ name: g.name || '', entity: g.entity || '', expanded: !!g.expanded }, [{ name: 'name', selector: { text: {} } }, { name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'expanded', selector: { boolean: {} } }],
-        { name: 'Názov skupiny', entity: 'Súčet skupiny (voliteľné)', expanded: 'Predvolene rozbalená' }, { entity: 'Bez neho karta sčíta okruhy v skupine.' }, (v) => {
+        { name: _('Názov skupiny'), entity: _('Súčet skupiny (voliteľné)'), expanded: _('Predvolene rozbalená') }, { entity: _('Bez neho karta sčíta okruhy v skupine.') }, (v) => {
           g.name = v.name || ''; if (v.entity) g.entity = v.entity; else delete g.entity; if (v.expanded) g.expanded = true; else delete g.expanded;
-          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').textContent = g.name || 'Skupina ' + (gi + 1); this._emit();
+          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').textContent = g.name || _('Skupina') + ' ' + (gi + 1); this._emit();
         }));
       const rows = document.createElement('div'); rows.className = 'items';
       g.rows.forEach((r, ri) => rows.appendChild(this._row(g, gi, r, ri)));
       body.appendChild(rows);
-      const add = document.createElement('button'); add.className = 'btn'; add.textContent = '+ Pridať okruh';
+      const add = document.createElement('button'); add.className = 'btn'; add.textContent = _('+ Pridať okruh');
       add.onclick = () => { const last = g.rows[g.rows.length - 1], ph = last && last.phase ? ['L1', 'L2', 'L3'][(['L1', 'L2', 'L3'].indexOf(last.phase) + 1) % 3] : 'L1';
         g.rows.push({ phase: ph }); this._openSet().add('g' + gi).add('r' + gi + '.' + (g.rows.length - 1)); this._emit(); this._build(); };
       body.appendChild(add);
@@ -305,19 +341,19 @@
     _row(g, gi, r, ri) {
       const it = document.createElement('div'), key = 'r' + gi + '.' + ri; it.className = 'it' + (this._openSet().has(key) ? ' open' : '');
       const s = r.entity && this._hass.states[r.entity];
-      const title = () => (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (s && s.attributes.friendly_name) || r.entity || 'Nový okruh');
+      const title = () => (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (s && s.attributes.friendly_name) || r.entity || _('Nový okruh'));
       const mv = (d) => () => { const j = ri + d; [g.rows[ri], g.rows[j]] = [g.rows[j], g.rows[ri]]; this._emit(); this._build(); };
-      const body = this._head(it, title(), r.entity ? (s ? r.entity : r.entity + ' – entita neexistuje') : 'vyber entitu', !!r.entity && !s,
+      const body = this._head(it, title(), r.entity ? (s ? r.entity : r.entity + ' – ' + _('entita neexistuje')) : _('vyber entitu'), !!r.entity && !s,
         mv(-1), mv(1), () => { g.rows.splice(ri, 1); this._open = new Set(['g' + gi]); this._emit(); this._build(); }, ri === 0, ri === g.rows.length - 1, key);
       body.appendChild(this._form({ entity: r.entity || '', name: r.name || '', phase: r.phase || 'none' },
         [{ name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'name', selector: { text: {} } },
           { name: 'phase', selector: { select: { mode: 'box', options: PHO } } }],
-        { entity: 'Senzor výkonu okruhu', name: 'Názov (napr. čo je na okruhu)', phase: 'Fáza' }, null, (v) => {
+        { entity: _('Senzor výkonu okruhu'), name: _('Názov (napr. čo je na okruhu)'), phase: _('Fáza') }, null, (v) => {
           const n = {}; if (v.entity) n.entity = v.entity; if (v.name) n.name = v.name; if (v.phase && v.phase !== 'none') n.phase = v.phase; if (r.max) n.max = r.max;
           Object.keys(r).forEach((k) => delete r[k]); Object.assign(r, n);
           const ns = r.entity && this._hass.states[r.entity];
-          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').innerHTML = (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (ns && ns.attributes.friendly_name) || r.entity || 'Nový okruh');
-          const sm = ih.querySelector('.tx small'); sm.textContent = r.entity ? (ns ? r.entity : r.entity + ' – entita neexistuje') : 'vyber entitu'; sm.className = r.entity && !ns ? 'warn' : '';
+          const ih = it.querySelector(':scope > .ih'); ih.querySelector('.tx b').innerHTML = (r.phase ? `<span class="pk">${r.phase}</span>` : '') + esc(r.name || (ns && ns.attributes.friendly_name) || r.entity || _('Nový okruh'));
+          const sm = ih.querySelector('.tx small'); sm.textContent = r.entity ? (ns ? r.entity : r.entity + ' – ' + _('entita neexistuje')) : _('vyber entitu'); sm.className = r.entity && !ns ? 'warn' : '';
           this._emit();
         }));
       return it;
@@ -328,6 +364,6 @@
   if (!customElements.get('igy-circuits-card')) customElements.define('igy-circuits-card', HomeCircuitsCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-circuits-card'))
-    window.customCards.push({ type: 'igy-circuits-card', name: 'Igy Circuits Card', description: 'Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.', preview: true });
+    window.customCards.push({ type: 'igy-circuits-card', name: 'Igy Circuits Card', description: _('Spotreba po okruhoch a fázach – zbaľovacie skupiny ističov.'), preview: true });
   console.info('%c IGY-CIRCUITS-CARD %c ' + VERSION + ' ', 'background:#34d399;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

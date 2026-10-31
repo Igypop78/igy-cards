@@ -4,7 +4,7 @@
 
 Ten custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits, battery/BMS and cameras. All cards ship in a single file, so one HACS install gives you all of them.
 
-> The card UI is in **Slovak** (built for a Slovak home with PV, battery and a gas boiler). Every card has a visual editor; nothing needs a build step or extra dependencies.
+> The cards and their editors follow your Home Assistant language: **English** and **Slovak** are built in (other languages fall back to English). Every card has a visual editor; nothing needs a build step or extra dependencies.
 
 ![Energy card](docs/images/energy.webp)
 
@@ -29,7 +29,7 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 | ![Battery](docs/images/battery.webp) | ![Entities](docs/images/entities.webp) | ![Buttons](docs/images/buttons.webp) |
 | ![Rooms](docs/images/room.webp) | ![Cameras](docs/images/camera.webp) | ![Markdown](docs/images/markdown.webp) |
 
-Screenshots use the default Home Assistant light theme with sample data.
+Screenshots use the default Home Assistant light theme with sample data, UI language English.
 
 ## Installation
 
@@ -93,7 +93,7 @@ entities:
   - input_select.ev_mode
   - type: divider
   - entity: sensor.evse_state
-    collapsed: true                    # hidden under "Ďalšie" together with neighbours
+    collapsed: true                    # hidden under "More" together with neighbours
 ```
 
 ```yaml

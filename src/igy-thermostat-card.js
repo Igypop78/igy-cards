@@ -18,6 +18,36 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Pridaj termostaty v nastaveniach karty.": "Add thermostats in the card settings.",
+    "Kúrenie": "Heating",
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "Kúri dlho a teplota nerastie": "Heating for a long time and the temperature is not rising",
+    "entita nenájdená": "entity not found",
+    "Otvorené okno": "Window open",
+    "vypnuté": "off",
+    "kúri dlho, teplota nerastie": "heating long, temperature not rising",
+    "kúri {0}": "heating {0}",
+    "Termostaty": "Thermostats",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.": "Drag by ⠿ to reorder. Tap a thermostat to set a custom name and a window sensor.",
+    "+ Pridať termostat": "+ Add thermostat",
+    "Nadpis karty (prázdny = bez hlavičky)": "Card title (empty = no header)",
+    "Čiara požiadavky na kúrenie (dole na karte)": "Heating demand line (bottom of the card)",
+    "Čiara ukazuje posledných": "Line shows the last",
+    "Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)": "Warn when heating longer than this without the temperature rising (0 = off)",
+    "Upraviť": "Edit",
+    "Odstrániť": "Remove",
+    "Termostat": "Thermostat",
+    "Vlastný názov (prázdny = názov z HA)": "Custom name (empty = name from HA)",
+    "Senzor okna – pri otvorení sa termostat zablokuje": "Window sensor – the thermostat is blocked while it is open",
+    "Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)": "Take heating demand from (empty = when the thermostat is heating)",
+    "Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.": "Selected thermostats in one card, drag to set the temperature."
+  };
+
   const VERSION = '4.7.7';
   const COL = { heat: '#ff9f0a', cool: '#0a84ff', win: '#ff6961', warn: '#ffd60a' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -105,17 +135,17 @@
     static getConfigElement() { return document.createElement('igy-thermostat-card-editor'); }
     static getStubConfig(hass) {
       const ids = hass ? Object.keys(hass.states).filter((id) => id.startsWith('climate.')).slice(0, 4) : [];
-      return { title: 'Kúrenie', entities: ids.map((id) => ({ entity: id })) };
+      return { title: _('Kúrenie'), entities: ids.map((id) => ({ entity: id })) };
     }
 
     setConfig(config) {
-      if (!config) throw new Error('Chybná konfigurácia.');
+      if (!config) throw new Error(_('Chybná konfigurácia.'));
       this._config = normalize(config);
       this._ov = {}; this._config.entities.forEach((e) => { this._ov[e.entity] = e; });
       this._sig = ''; this._card = null; this._hist = {}; this._histKey = '';
       if (this._hass) { this._render(); this._histStart(); }
     }
-    set hass(hass) { const first = !this._hass; this._hass = hass; this._render(); if (first) this._histStart(); }
+    set hass(hass) { setLang(hass); const first = !this._hass; this._hass = hass; this._render(); if (first) this._histStart(); }
     connectedCallback() { if (this._hass) this._histStart(); }
     disconnectedCallback() { clearInterval(this._histT); this._histT = null; }
     _hours() { const h = this._config.hours; return h == null ? 24 : Math.max(1, Number(h) || 24); }
@@ -139,7 +169,7 @@
         const t = this._config.title;
         this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
           ${t ? `<div class="hl tap" id="hl"><ha-icon icon="mdi:thermostat"></ha-icon><span>${esc(t)}</span><span class="cnt" id="cnt"></span><ha-icon class="chev" icon="mdi:chevron-down"></ha-icon></div>` : ''}
-          <div class="list" id="list"></div><div class="empty" id="empty">Pridaj termostaty v nastaveniach karty.</div>
+          <div class="list" id="list"></div><div class="empty" id="empty">${_('Pridaj termostaty v nastaveniach karty.')}</div>
           ${this._rtOn() ? '<div class="dm" id="dm"></div>' : ''}
           </ha-card>`;
         this._card = this.shadowRoot.querySelector('ha-card');
@@ -161,7 +191,7 @@
             <div class="glow"></div><div class="glow2"></div>
             <div class="top">
               <span class="ic"><ha-icon></ha-icon></span>
-              <span class="nm"><b><span class="n"></span><i class="wd" title="Kúri dlho a teplota nerastie"></i></b><span class="cur"></span></span>
+              <span class="nm"><b><span class="n"></span><i class="wd" title="${_('Kúri dlho a teplota nerastie')}"></i></b><span class="cur"></span></span>
               <span class="ct"><span class="v"></span><small>°</small></span>
               <span class="tg"><span class="ok">✓</span><em><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></em><b></b><small>°</small></span>
             </div>
@@ -282,7 +312,7 @@
         const s = this._hass.states[id], row = [...this._list.children].find((r) => r.dataset.id === id);
         if (!row) return;
         row.classList.toggle('na', !s);
-        if (!s) { row.querySelector('.nm .n').textContent = (this._ov[id] && this._ov[id].name) || id; row.querySelector('.cur').textContent = 'entita nenájdená'; return; }
+        if (!s) { row.querySelector('.nm .n').textContent = (this._ov[id] && this._ov[id].name) || id; row.querySelector('.cur').textContent = _('entita nenájdená'); return; }
         const a = s.attributes, ov = this._ov[id] || {};
         const act = a.hvac_action || '', off = s.state === 'off' || act === 'off';
         const mode = act === 'heating' || act === 'preheating' ? 'heat' : act === 'cooling' ? 'cool' : off ? 'off' : '';
@@ -301,9 +331,9 @@
         // aktuálna teplota vpravo, druhý riadok len keď je čo povedať
         const cv = row.querySelector('.ct .v'); if (cv.textContent !== c) cv.textContent = c;
         let sub = '';
-        if (winOpen) sub = 'Otvorené okno · ' + this._ago(w.last_changed);
-        else if (mode === 'off') sub = 'vypnuté';
-        else if (warn) sub = 'kúri dlho, teplota nerastie';
+        if (winOpen) sub = _('Otvorené okno') + ' · ' + this._ago(w.last_changed);
+        else if (mode === 'off') sub = _('vypnuté');
+        else if (warn) sub = _('kúri dlho, teplota nerastie');
         const ce = row.querySelector('.cur'); if (ce.textContent !== sub) ce.textContent = sub;
         // potvrdenie zmeny z HA
         if (row._pend != null && a.temperature === row._pend) {
@@ -317,7 +347,7 @@
       });
       this._drawRt(ids);
       const cnt = this.shadowRoot.getElementById('cnt');
-      if (cnt) cnt.textContent = heating ? `kúri ${heating}` : '';
+      if (cnt) cnt.textContent = heating ? _('kúri {0}', heating) : '';
     }
   }
 
@@ -359,7 +389,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) {
+    set hass(h) { setLang(h);
       const first = !this._hass; this._hass = h;
       if (first && this._cfg) this._build();
       this.querySelectorAll('ha-form, ha-entity-picker').forEach((f) => { f.hass = h; });
@@ -374,10 +404,10 @@
       const open = this._open || new Set();
       this.innerHTML = `<style>${EDCSS}</style><div class="ed">
         <div id="top"></div>
-        <div class="sec">Termostaty</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.</div>
+        <div class="sec">${_('Termostaty')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na termostat pre vlastný názov a senzor okna.')}</div>
         <div class="items" id="items"></div>
-        <div class="add"><div class="lbl">+ Pridať termostat</div><div id="addp"></div></div>
+        <div class="add"><div class="lbl">${_('+ Pridať termostat')}</div><div id="addp"></div></div>
       </div>`;
       // nadpis
       const top = document.createElement('ha-form');
@@ -385,7 +415,7 @@
       top.schema = [{ name: 'title', selector: { text: {} } }, { name: 'runtime', selector: { boolean: {} } },
         { name: 'hours', selector: { number: { min: 1, max: 168, step: 1, mode: 'box', unit_of_measurement: 'h' } } },
         { name: 'warn_hours', selector: { number: { min: 0, max: 24, step: 0.5, mode: 'box', unit_of_measurement: 'h' } } }];
-      const TL = { title: 'Nadpis karty (prázdny = bez hlavičky)', runtime: 'Čiara požiadavky na kúrenie (dole na karte)', hours: 'Čiara ukazuje posledných', warn_hours: 'Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)' };
+      const TL = { title: _('Nadpis karty (prázdny = bez hlavičky)'), runtime: _('Čiara požiadavky na kúrenie (dole na karte)'), hours: _('Čiara ukazuje posledných'), warn_hours: _('Varovať, keď kúri dlhšie a teplota nerastie (0 = nie)') };
       top.computeLabel = (x) => TL[x.name];
       top.addEventListener('value-changed', (e) => {
         e.stopPropagation();
@@ -420,8 +450,8 @@
       it.innerHTML = `<div class="ih">
           <span class="hd" title="Potiahni pre zmenu poradia">⠿</span>
           <span class="tx"><b></b><small class="${s ? '' : 'warn'}"></small></span>
-          <button class="ib exp" title="Upraviť">${ICO.down}</button>
-          <button class="ib del" title="Odstrániť">${ICO.del}</button>
+          <button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button>
+          <button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button>
         </div><div class="body"></div>`;
       const setTx = () => { it.querySelector('.tx b').textContent = this._name(e); it.querySelector('.tx small').textContent = s ? sub() : e.entity + ' – entita neexistuje'; };
       setTx();
@@ -439,7 +469,7 @@
         { name: 'window', selector: { entity: { domain: 'binary_sensor' } } },
         { name: 'history', selector: { entity: {} } }
       ];
-      const L = { entity: 'Termostat', name: 'Vlastný názov (prázdny = názov z HA)', window: 'Senzor okna – pri otvorení sa termostat zablokuje', history: 'Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)' };
+      const L = { entity: _('Termostat'), name: _('Vlastný názov (prázdny = názov z HA)'), window: _('Senzor okna – pri otvorení sa termostat zablokuje'), history: _('Požiadavku na kúrenie brať z (prázdne = keď termostat kúri)') };
       f.computeLabel = (x) => L[x.name];
       f.addEventListener('value-changed', (ev) => {
         ev.stopPropagation();
@@ -485,6 +515,6 @@
   if (!customElements.get('igy-thermostat-card')) customElements.define('igy-thermostat-card', MultiThermostatCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-thermostat-card'))
-    window.customCards.push({ type: 'igy-thermostat-card', name: 'Igy Thermostat Card', description: 'Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.', preview: true });
+    window.customCards.push({ type: 'igy-thermostat-card', name: 'Igy Thermostat Card', description: _('Vybrané termostaty v jednej karte, ťahaním nastavíš teplotu.'), preview: true });
   console.info('%c IGY-THERMOSTAT-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

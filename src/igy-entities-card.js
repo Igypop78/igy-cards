@@ -30,6 +30,53 @@
  */
 (function () {
   'use strict';
+  // jazyk podľa Home Assistanta: sk = slovenčina, inak angličtina (texty v kóde sú po slovensky, preklady v EN)
+  let LANG = String((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || (typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2).toLowerCase();
+  const setLang = (h) => { const l = h && ((h.locale && h.locale.language) || h.language); if (l) LANG = String(l).slice(0, 2).toLowerCase(); };
+  const _ = (s, ...a) => { let r = LANG === 'sk' ? s : (EN[s] != null ? EN[s] : s); a.forEach((v, i) => { r = r.split('{' + i + '}').join(v); }); return r; };
+  const EN = {
+    "Chybná konfigurácia.": "Invalid configuration.",
+    "práve teraz": "just now",
+    "pred {0} min": "{0} min ago",
+    "pred {0} h": "{0} h ago",
+    "včera": "yesterday",
+    "pred {0} d": "{0} d ago",
+    "Ďalšie": "More",
+    "Skryť": "Hide",
+    "entita nenájdená": "entity not found",
+    "Aktivovať": "Activate",
+    "Spustiť": "Run",
+    "Upraviť": "Edit",
+    "Nič": "None",
+    "Posledná zmena": "Last changed",
+    "Posledná aktualizácia": "Last updated",
+    "ID entity": "Entity ID",
+    "Entity": "Entities",
+    "Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.": "Drag by ⠿ to reorder. Tap an item to set its name, icon and secondary line. A divider starts a new group.",
+    "+ Pridať entitu": "+ Add entity",
+    "+ Pridať oddeľovač": "+ Add divider",
+    "Graf dole": "Graph at the bottom",
+    "Nadpis karty (voliteľné)": "Card title (optional)",
+    "Ikona pri nadpise": "Title icon",
+    "Zafarbiť ikonu, keď je zapnuté": "Color the icon when on",
+    "Vyber entitu": "Choose an entity",
+    "Entita grafu (prázdne = bez grafu)": "Graph entity (empty = no graph)",
+    "Koľko hodín dozadu": "Hours to show",
+    "Odstrániť": "Remove",
+    "Skupina": "Group",
+    "— oddeľovač —": "— divider —",
+    "začína novú skupinu": "starts a new group",
+    "entita neexistuje": "entity does not exist",
+    "zbalená": "collapsed",
+    "Nadpis skupiny (voliteľné)": "Group title (optional)",
+    "Entita": "Entity",
+    "Vlastný názov (prázdny = názov z HA)": "Custom name (empty = name from HA)",
+    "Ikona (prázdna = podľa HA)": "Icon (empty = from HA)",
+    "Druhý riadok": "Secondary line",
+    "Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)": "Collapsed – hide under “More” (adjacent collapsed entities are grouped)",
+    "Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.": "Entity list with proper toggles, selects and steppers."
+  };
+
   const VERSION = '1.1.0';
   const ACC = '#ff9f0a';
   const TOGGLE = ['switch', 'light', 'input_boolean', 'fan', 'automation', 'siren', 'humidifier'];
@@ -131,12 +178,12 @@
     static getConfigElement() { return document.createElement('igy-entities-card-editor'); }
     static getStubConfig() { return { title: 'Entity', state_color: true, entities: [] }; }
     setConfig(c) {
-      if (!c) throw new Error('Chybná konfigurácia.');
+      if (!c) throw new Error(_('Chybná konfigurácia.'));
       this._config = normalize(c); this._card = null; this._open = null; this._edit = null; this._gpts = null;
       if (this._hass) this._render();
       this._gStart();
     }
-    set hass(h) { const first = !this._hass; this._hass = h; this._render(); if (first) this._gStart(); }
+    set hass(h) { setLang(h); const first = !this._hass; this._hass = h; this._render(); if (first) this._gStart(); }
     connectedCallback() { this._gStart(); if (!this._tick) this._tick = setInterval(() => this._hass && this._update(), 30000); }
     disconnectedCallback() { clearInterval(this._gT); this._gT = null; clearInterval(this._tick); this._tick = null; }
     getCardSize() { return 1 + Math.ceil(this._config.entities.length * 1.1) + (this._config.graph ? 2 : 0); }
@@ -155,8 +202,8 @@
     }
     _ago(ts) {
       const m = Math.round((Date.now() - Date.parse(ts)) / 60000);
-      if (isNaN(m)) return ''; if (m < 1) return 'práve teraz'; if (m < 60) return `pred ${m} min`;
-      const h = Math.floor(m / 60); if (h < 24) return `pred ${h} h`; const d = Math.floor(h / 24); return d === 1 ? 'včera' : `pred ${d} d`;
+      if (isNaN(m)) return ''; if (m < 1) return _('práve teraz'); if (m < 60) return _('pred {0} min', m);
+      const h = Math.floor(m / 60); if (h < 24) return _('pred {0} h', h); const d = Math.floor(h / 24); return d === 1 ? _('včera') : _('pred {0} d', d);
     }
     _call(d, svc, data) { return this._hass.callService(d, svc, data); }
     _more(id) { this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: id } })); }
@@ -177,7 +224,7 @@
           if (!open) { html += '<div class="grp">'; open = true; }
           if (e.collapsed && !mo) {
             mo = { k: i, n: 0 };
-            html += `<div class="more${ms[i] ? ' o' : ''}" data-m="${i}"><div class="mt"><span class="ic">${ICO_MORE}</span><span class="nm"><b><span class="ms">Ďalšie</span><span class="mh">Skryť</span></b></span><span class="mc">@@N${i}@@</span><span class="chev">${ICO_CHEV}</span></div><div class="mb">`;
+            html += `<div class="more${ms[i] ? ' o' : ''}" data-m="${i}"><div class="mt"><span class="ic">${ICO_MORE}</span><span class="nm"><b><span class="ms">${_('Ďalšie')}</span><span class="mh">${_('Skryť')}</span></b></span><span class="mc">@@N${i}@@</span><span class="chev">${ICO_CHEV}</span></div><div class="mb">`;
           } else if (!e.collapsed) closeM();
           if (mo) mo.n++;
           html += `<div class="row" data-i="${i}"><span class="ic"></span><span class="nm"><b></b><small></small></span><span class="ctl"></span></div><div class="exp" data-x="${i}"></div>`;
@@ -235,7 +282,7 @@
         if (s && e.secondary_info === 'last-changed') sec = this._ago(s.last_changed);
         else if (s && e.secondary_info === 'last-updated') sec = this._ago(s.last_updated);
         else if (e.secondary_info === 'entity-id') sec = e.entity;
-        if (!s) sec = 'entita nenájdená';
+        if (!s) sec = _('entita nenájdená');
         sm.classList.toggle('txt', false);
         // ovládací prvok – kostra sa mení len pri zmene druhu
         if (row._k !== k) { row._k = k; ctl.innerHTML = this._ctlHTML(k, e, s); this._bindCtl(row, k, e); }
@@ -282,8 +329,8 @@
         const a = s.attributes, type = a.has_date && a.has_time !== false ? 'datetime-local' : a.has_date ? 'date' : 'time';
         return `<span class="pill"><span></span><input type="${type}" step="60"></span>`;
       }
-      if (k === 'run') return `<span class="pill run"><span>${dom(e.entity) === 'scene' ? 'Aktivovať' : 'Spustiť'}</span></span>`;
-      if (k === 'text') return `<span class="pill"><span>Upraviť</span></span>`;
+      if (k === 'run') return `<span class="pill run"><span>${dom(e.entity) === 'scene' ? _('Aktivovať') : _('Spustiť')}</span></span>`;
+      if (k === 'text') return `<span class="pill"><span>${_('Upraviť')}</span></span>`;
       return '';
     }
 
@@ -446,7 +493,7 @@
     down: CHEV,
     del: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9m0 5h2v9H9V8m4 0h2v9h-2V8z"/></svg>'
   };
-  const SEC_OPTS = [{ value: 'none', label: 'Nič' }, { value: 'last-changed', label: 'Posledná zmena' }, { value: 'last-updated', label: 'Posledná aktualizácia' }, { value: 'entity-id', label: 'ID entity' }];
+  const SEC_OPTS = () => [{ value: 'none', label: _('Nič') }, { value: 'last-changed', label: _('Posledná zmena') }, { value: 'last-updated', label: _('Posledná aktualizácia') }, { value: 'entity-id', label: _('ID entity') }];
 
   class HomeEntitiesCardEditor extends HTMLElement {
     setConfig(config) {
@@ -455,7 +502,7 @@
       this._cfg = c; this._last = JSON.stringify(c);
       if (this._hass) this._build();
     }
-    set hass(h) {
+    set hass(h) { setLang(h);
       const first = !this._hass; this._hass = h;
       if (first && this._cfg) this._build();
       this.querySelectorAll('ha-form').forEach((f) => { f.hass = h; });
@@ -475,29 +522,29 @@
       const open = this._open || new Set();
       this.innerHTML = `<style>${EDCSS}</style><div class="ed">
         <div id="top"></div>
-        <div class="sec">Entity</div>
-        <div class="hint">Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.</div>
+        <div class="sec">${_('Entity')}</div>
+        <div class="hint">${_('Poradie zmeníš potiahnutím za ⠿. Ťukni na položku pre názov, ikonu a druhý riadok. Oddeľovač začne novú skupinu.')}</div>
         <div class="items" id="items"></div>
-        <div class="add"><div class="lbl">+ Pridať entitu</div><div id="addp"></div></div>
-        <button class="btn" id="adddiv">+ Pridať oddeľovač</button>
-        <div class="sec">Graf dole</div>
+        <div class="add"><div class="lbl">${_('+ Pridať entitu')}</div><div id="addp"></div></div>
+        <button class="btn" id="adddiv">${_('+ Pridať oddeľovač')}</button>
+        <div class="sec">${_('Graf dole')}</div>
         <div id="graph"></div>
       </div>`;
       const c = this._cfg;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', icon: c.icon || '', state_color: c.state_color !== false },
         [{ name: 'title', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } }, { name: 'state_color', selector: { boolean: {} } }],
-        { title: 'Nadpis karty (voliteľné)', icon: 'Ikona pri nadpise', state_color: 'Zafarbiť ikonu, keď je zapnuté' },
+        { title: _('Nadpis karty (voliteľné)'), icon: _('Ikona pri nadpise'), state_color: _('Zafarbiť ikonu, keď je zapnuté') },
         (v) => { ['title', 'icon'].forEach((k) => { if (v[k]) c[k] = v[k]; else delete c[k]; }); if (v.state_color === false) c.state_color = false; else c.state_color = true; this._emit(); }));
       const box = this.querySelector('#items');
       c.entities.forEach((e, i) => box.appendChild(this._item(e, i, open.has(i))));
-      this.querySelector('#addp').appendChild(this._form({}, [{ name: 'entity', selector: { entity: {} } }], { entity: 'Vyber entitu' }, (v) => {
+      this.querySelector('#addp').appendChild(this._form({}, [{ name: 'entity', selector: { entity: {} } }], { entity: _('Vyber entitu') }, (v) => {
         if (!v.entity) return; c.entities.push({ entity: v.entity }); this._emit(); this._open = new Set(); this._build();
       }));
       this.querySelector('#adddiv').onclick = () => { c.entities.push({ type: 'divider' }); this._emit(); this._open = new Set([c.entities.length - 1]); this._build(); };
       const g = c.graph || {};
       this.querySelector('#graph').appendChild(this._form({ entity: g.entity || '', hours: g.hours || 12 },
         [{ name: 'entity', selector: { entity: { domain: 'sensor' } } }, { name: 'hours', selector: { number: { min: 1, max: 168, step: 1, mode: 'box', unit_of_measurement: 'h' } } }],
-        { entity: 'Entita grafu (prázdne = bez grafu)', hours: 'Koľko hodín dozadu' },
+        { entity: _('Entita grafu (prázdne = bez grafu)'), hours: _('Koľko hodín dozadu') },
         (v) => { if (v.entity) c.graph = { entity: v.entity, hours: Number(v.hours) || 12 }; else delete c.graph; this._emit(); }));
     }
 
@@ -506,24 +553,24 @@
       it.className = 'it' + (isOpen ? ' open' : '') + (isDiv ? ' div' : '');
       const s = !isDiv && this._hass.states[e.entity];
       it.innerHTML = `<div class="ih"><span class="hd" title="Potiahni pre zmenu poradia">⠿</span><span class="tx"><b></b><small></small></span>
-        <button class="ib exp" title="Upraviť">${ICO.down}</button><button class="ib del" title="Odstrániť">${ICO.del}</button></div><div class="body"></div>`;
+        <button class="ib exp" title="${_('Upraviť')}">${ICO.down}</button><button class="ib del" title="${_('Odstrániť')}">${ICO.del}</button></div><div class="body"></div>`;
       const setTx = () => {
-        it.querySelector('.tx b').textContent = isDiv ? (e.label ? 'Skupina: ' + e.label : '— oddeľovač —') : e.name || (s && s.attributes.friendly_name) || e.entity;
+        it.querySelector('.tx b').textContent = isDiv ? (e.label ? _('Skupina') + ': ' + e.label : _('— oddeľovač —')) : e.name || (s && s.attributes.friendly_name) || e.entity;
         const sm = it.querySelector('.tx small'); sm.className = !isDiv && !s ? 'warn' : '';
-        sm.textContent = isDiv ? 'začína novú skupinu' : (s ? e.entity : e.entity + ' – entita neexistuje') + (e.collapsed ? ' · zbalená' : '');
+        sm.textContent = isDiv ? _('začína novú skupinu') : (s ? e.entity : e.entity + ' – ' + _('entita neexistuje')) + (e.collapsed ? ' · ' + _('zbalená') : '');
       };
       setTx();
       const toggle = () => { it.classList.toggle('open'); this._open = new Set([...this.querySelectorAll('.it')].map((x, k) => x.classList.contains('open') ? k : -1).filter((k) => k >= 0)); };
       it.querySelector('.tx').onclick = toggle; it.querySelector('.exp').onclick = toggle;
       it.querySelector('.del').onclick = () => { c.entities.splice(i, 1); this._emit(); this._open = new Set(); this._build(); };
       const f = isDiv
-        ? this._form({ label: e.label || '' }, [{ name: 'label', selector: { text: {} } }], { label: 'Nadpis skupiny (voliteľné)' }, (v) => {
+        ? this._form({ label: e.label || '' }, [{ name: 'label', selector: { text: {} } }], { label: _('Nadpis skupiny (voliteľné)') }, (v) => {
           if (v.label) e.label = v.label; else delete e.label; setTx(); this._emit();
         })
         : this._form({ entity: e.entity, name: e.name || '', icon: e.icon || '', secondary_info: e.secondary_info || 'none', collapsed: !!e.collapsed },
           [{ name: 'entity', required: true, selector: { entity: {} } }, { name: 'name', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } },
-            { name: 'secondary_info', selector: { select: { mode: 'dropdown', options: SEC_OPTS } } }, { name: 'collapsed', selector: { boolean: {} } }],
-          { entity: 'Entita', name: 'Vlastný názov (prázdny = názov z HA)', icon: 'Ikona (prázdna = podľa HA)', secondary_info: 'Druhý riadok', collapsed: 'Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)' },
+            { name: 'secondary_info', selector: { select: { mode: 'dropdown', options: SEC_OPTS() } } }, { name: 'collapsed', selector: { boolean: {} } }],
+          { entity: _('Entita'), name: _('Vlastný názov (prázdny = názov z HA)'), icon: _('Ikona (prázdna = podľa HA)'), secondary_info: _('Druhý riadok'), collapsed: _('Zbalená – skryť pod „Ďalšie“ (susedné zbalené entity sa spoja)') },
           (v) => {
             const n = { entity: v.entity || e.entity };
             if (v.name) n.name = v.name; if (v.icon) n.icon = v.icon; if (v.secondary_info && v.secondary_info !== 'none') n.secondary_info = v.secondary_info; if (v.collapsed) n.collapsed = true;
@@ -563,6 +610,6 @@
   if (!customElements.get('igy-entities-card')) customElements.define('igy-entities-card', HomeEntitiesCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'igy-entities-card'))
-    window.customCards.push({ type: 'igy-entities-card', name: 'Igy Entities Card', description: 'Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.', preview: true });
+    window.customCards.push({ type: 'igy-entities-card', name: 'Igy Entities Card', description: _('Zoznam entít s peknými prepínačmi, výbermi a krokovačmi.'), preview: true });
   console.info('%c IGY-ENTITIES-CARD %c ' + VERSION + ' ', 'background:#ff9f0a;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
