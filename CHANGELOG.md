@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] – 2026-10-31
+
+**igy-room-card 2.0.0**
+- Nový editor: všetky entity oblasti v sekciách Hlavička / Tlačidlá / Sekundárne / Skryté – ťahanie za ⠿ v rámci sekcie aj medzi sekciami, oko skryje entitu len v tejto karte, ⋮ = vlastný názov, ikona a či ju zapína ťuk na nadpis. Entity, ktoré sa automaticky nezobrazujú, sú v časti „Ďalšie entity v oblasti“. Dá sa pridať aj entita z inej oblasti a vrátiť automatické rozloženie.
+- Nové voľby `buttons`, `hidden`, `customize`, `new_entities` (auto / hide) a `language` (auto / en / sk). Doterajšie `order` sa číta ako `buttons`.
+- **Štítky sa už nepoužívajú** (Skryť, Hlavička, Karta izby, Sekundárne, Mimo izby…). Nastavenia z nich treba preniesť do editora karty.
+- Karta aj editor sú lokalizované – angličtina a slovenčina podľa jazyka HA.
+
 ## [1.1.0] – 2026-10-29
 
 - **Nová karta igy-camera-card** (bývalá kamery-card) – mriežka kamier cez WebRTC (go2rtc / Frigate), na celej obrazovke najprv malý stream a potom plné rozlíšenie, zoom a posun prstami. Má vizuálny editor (kamery, streamy, pomer strán, stĺpce, režimy, snímka pri načítaní) a voľbu `show_name`. Vyžaduje WebRTC Camera (AlexxIT) z HACS.

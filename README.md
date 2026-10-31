@@ -15,7 +15,7 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 | Energy | `custom:igy-energy-card` | Live power flows (home, PV, battery, grid, gas, water, hot water) and a collapsible day / week / month / year overview from the Energy dashboard, incl. costs |
 | Weather | `custom:igy-weather-card` | Scrollable hourly strip from midnight to tomorrow with history, sunrise/sunset and a PV-production ring per hour (Solcast), plus the next days |
 | Thermostats | `custom:igy-thermostat-card` | Several climate entities in one card, 24 h heating-demand line, open-window warning |
-| Room | `custom:igy-room-card` | One HA area: lights, temperature, humidity, windows, motion – entities are found from the area automatically |
+| Room | `custom:igy-room-card` | One HA area: lights, temperature, humidity, windows, motion – entities are found from the area automatically; reorder, hide and rename them in the editor (EN / SK) |
 | Entities | `custom:igy-entities-card` | Drop-in replacement for the Entities card with proper controls per entity type, groups and collapsible entities |
 | Buttons | `custom:igy-buttons-card` | Buttons as tiles, pills or icons, optional confirm-by-second-tap |
 | Markdown | `custom:igy-markdown-card` | Markdown/templates in the same style, `---` splits content into groups |
@@ -77,6 +77,13 @@ entities:
 type: custom:igy-room-card
 area: bedroom
 collapsible: true
+# optional – everything below can be arranged in the visual editor (drag & drop, hide, rename)
+header: [sensor.bedroom_temperature, binary_sensor.bedroom_window]
+buttons: [light.ceiling, light.lamp, cover.bedroom]
+secondary: [switch.charger]
+hidden: [switch.tv_plug]
+customize:
+  light.lamp: { name: Lamp, icon: mdi:lamp, toggle: false }
 ```
 
 ```yaml
