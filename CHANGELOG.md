@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.1] – 2026-10-31
+### Changed
+- Room card: the per-entity option for lights is now labelled *Room light* – switching it off excludes the light (e.g. a fan on a dimmer, stair lighting) from the lights counter, the title tap and the lights-off badge; its own button still works.
+
 ## [1.3.0] – 2026-10-31
 ### Added
 - English UI for all cards and editors. The language follows the Home Assistant user language (`hass.locale.language`); Slovak is used for `sk`, English for everything else.

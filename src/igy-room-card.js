@@ -15,7 +15,7 @@
  *   secondary: [switch.charger]                                               # smaller buttons in a second row
  *   hidden:    [switch.tv_plug]
  *   customize:
- *     light.lamp: { name: Lamp, icon: mdi:lamp, toggle: false }   # toggle: false = title tap does not switch it
+ *     light.lamp: { name: Lamp, icon: mdi:lamp, toggle: false }   # toggle: false = not a room light: not counted, not switched centrally
  *
  * Entities not listed anywhere are placed automatically: lights, switches, covers, climate, fans, media players,
  * vacuums, locks… as buttons; the first temperature and humidity sensor and window/door/motion sensors in the header.
@@ -24,7 +24,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '2.0.0';
+  const VERSION = '2.0.1';
 
   /* ---------- texts (EN / SK) ---------- */
   const STR = {
@@ -38,7 +38,7 @@
       s_header: 'Header', s_buttons: 'Buttons', s_secondary: 'Secondary', s_hidden: 'Hidden', s_other: 'Other entities in the area',
       other_hint: 'Not shown automatically (other sensors, configuration…). Drag one into a section to show it.',
       drop: 'Drag entities here', add: 'Add entity (also from another area)', reset: 'Reset to automatic layout',
-      c_name: 'Name on the card', c_icon: 'Icon', c_toggle: 'Title tap switches this light', c_section: 'Section',
+      c_name: 'Name on the card', c_icon: 'Icon', c_toggle: 'Room light (counted, switched by title tap and the lights-off badge)', c_section: 'Section',
       from_area: 'other area', no_area: 'no area', hide: 'Hide', show: 'Show', details: 'Options', auto: 'auto'
     },
     sk: {
@@ -51,7 +51,7 @@
       s_header: 'Hlavička', s_buttons: 'Tlačidlá', s_secondary: 'Sekundárne', s_hidden: 'Skryté', s_other: 'Ďalšie entity v oblasti',
       other_hint: 'Automaticky sa nezobrazujú (ostatné senzory, nastavenia…). Potiahni ich do sekcie, ak ich chceš na karte.',
       drop: 'Sem potiahni entity', add: 'Pridať entitu (aj z inej oblasti)', reset: 'Vrátiť automatické rozloženie',
-      c_name: 'Názov na karte', c_icon: 'Ikona', c_toggle: 'Ťuk na nadpis zapína / zhasína toto svetlo', c_section: 'Sekcia',
+      c_name: 'Názov na karte', c_icon: 'Ikona', c_toggle: 'Svetlo izby (počíta sa, ovláda ho ťuk na nadpis a hromadné zhasnutie)', c_section: 'Sekcia',
       from_area: 'iná oblasť', no_area: 'bez oblasti', hide: 'Skryť', show: 'Zobraziť', details: 'Voľby', auto: 'auto'
     }
   };

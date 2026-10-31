@@ -83,7 +83,8 @@ buttons: [light.ceiling, light.lamp, cover.bedroom]
 secondary: [switch.charger]
 hidden: [switch.tv_plug]
 customize:
-  light.lamp: { name: Lamp, icon: mdi:lamp, toggle: false }
+  light.lamp: { name: Lamp, icon: mdi:lamp }
+  light.ceiling_fan: { icon: mdi:ceiling-fan, toggle: false }   # not a room light: not counted, not switched centrally
 ```
 
 ```yaml
