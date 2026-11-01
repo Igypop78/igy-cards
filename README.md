@@ -12,7 +12,7 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 
 | Card | Type | What it shows |
 |---|---|---|
-| Energy story | `custom:igy-energy-story-card` | Full-screen, Apple-style story of your home energy by year / month / day: flow diagram, usage over time, money, gas and water, highlights and comparison with last year – all from the Energy dashboard statistics |
+| Energy story | `custom:igy-energy-story-card` | Full-screen, Apple-style story of what your solar and battery bring by month / year / all time: benefit, how the battery buys low and sells high, battery life and earnings per cycle, payback and home costs – from the Energy dashboard statistics |
 | Energy | `custom:igy-energy-card` | Live power flows (home, PV, battery, grid, gas, water, hot water) and a collapsible day / week / month / year overview from the Energy dashboard, incl. costs |
 | Weather | `custom:igy-weather-card` | Scrollable hourly strip from midnight to tomorrow with history, sunrise/sunset and a PV-production ring per hour (Solcast), plus the next days |
 | Thermostats | `custom:igy-thermostat-card` | Several climate entities in one card, 24 h heating-demand line, open-window warning |
@@ -153,10 +153,18 @@ Energy story – best in a dashboard view of type *Panel (single card)*:
 
 ```yaml
 type: custom:igy-energy-story-card
-view: year            # year | month | day
-compare: true         # compare with the same period last year
-ev_km_per_kwh: 6      # highlight: how far an EV could drive on your solar
-battery_capacity: 20  # optional – battery cycles in highlights (kWh)
+view: month                       # month | year | total
+battery_capacity: 34              # kWh
+battery_cycle_life: 4000          # guaranteed cycles
+battery_cycles_entity: sensor.total_battery_life_cycles_inverter
+battery_price: 3500               # € – battery payback (optional)
+system_price: 8000                # € – whole PV system payback (optional)
+install_date: 2024-02-01
+tariff:                           # what electricity would cost without PV
+  vt: 0.21
+  nt: 0.12
+  nt_hours: ["23:45-05:45", "13:45-15:45"]
+price_stat: sensor.spot_price     # optional – spot price for the day curve (€/MWh)
 ```
 
 All options of each card are described in the comment at the top of its source file in [`src/`](src).

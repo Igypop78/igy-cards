@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.0] – 2026-11-01
+### Changed
+- **igy-energy-story-card redesigned** – instead of flow diagrams and charts it now tells what your solar and battery bring, Apple style, by month / year / all time:
+  - **Benefit** – what the home would cost without PV (consumption × tariff) minus actual cost, split into solar savings (self-consumed solar × peak rate) and battery & export; totals for the year and since installation.
+  - **The battery buys low, sells high** – average spot price over the day with charging and selling windows, average buy and sell price and the margin per MWh.
+  - Tiles for solar (ring with the share of home use), export (income, average price) and import (share in off-peak, cost).
+  - **Battery** – cycles, remaining life from the total-cycles entity, earned per cycle, wear per cycle, net after wear, best day.
+  - **Payback** of the battery and the whole PV system with years remaining (from the last 12 months).
+  - **Home costs** (electricity, gas, water) and the home balance after export income.
+  - New options: `battery_capacity`, `battery_cycle_life`, `battery_cycles_entity`, `battery_price`, `system_price`, `install_date`, `tariff` (vt, nt, nt_hours), `price_stat`. Removed: `compare`, `ev_km_per_kwh`.
+
 ## [1.4.0] – 2026-11-01
 ### Added
 - **New card igy-energy-story-card** – your home energy story in an Apple-style layout: year / month / day with navigation and tap-to-drill-down (year → month → day).
