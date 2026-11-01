@@ -12,6 +12,7 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 
 | Card | Type | What it shows |
 |---|---|---|
+| Energy story | `custom:igy-energy-story-card` | Full-screen, Apple-style story of your home energy by year / month / day: flow diagram, usage over time, money, gas and water, highlights and comparison with last year – all from the Energy dashboard statistics |
 | Energy | `custom:igy-energy-card` | Live power flows (home, PV, battery, grid, gas, water, hot water) and a collapsible day / week / month / year overview from the Energy dashboard, incl. costs |
 | Weather | `custom:igy-weather-card` | Scrollable hourly strip from midnight to tomorrow with history, sunrise/sunset and a PV-production ring per hour (Solcast), plus the next days |
 | Thermostats | `custom:igy-thermostat-card` | Several climate entities in one card, 24 h heating-demand line, open-window warning |
@@ -28,6 +29,8 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 | ![Weather](docs/images/weather.webp) | ![Thermostats](docs/images/thermostat.webp) | ![Circuits](docs/images/circuits.webp) |
 | ![Battery](docs/images/battery.webp) | ![Entities](docs/images/entities.webp) | ![Buttons](docs/images/buttons.webp) |
 | ![Rooms](docs/images/room.webp) | ![Cameras](docs/images/camera.webp) | ![Markdown](docs/images/markdown.webp) |
+
+![Energy story](docs/images/energy-story.webp)
 
 Screenshots use the default Home Assistant light theme with sample data, UI language English.
 
@@ -144,6 +147,16 @@ cameras:
     sub: entrance_sub
     aspect: 16/9
 poster: http://frigate:5000/api/{name}/latest.jpg?h=480   # optional still image while loading
+```
+
+Energy story – best in a dashboard view of type *Panel (single card)*:
+
+```yaml
+type: custom:igy-energy-story-card
+view: year            # year | month | day
+compare: true         # compare with the same period last year
+ev_km_per_kwh: 6      # highlight: how far an EV could drive on your solar
+battery_capacity: 20  # optional – battery cycles in highlights (kWh)
 ```
 
 All options of each card are described in the comment at the top of its source file in [`src/`](src).

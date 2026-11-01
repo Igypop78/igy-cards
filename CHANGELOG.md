@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0] – 2026-11-01
+### Added
+- **New card igy-energy-story-card** – your home energy story in an Apple-style layout: year / month / day with navigation and tap-to-drill-down (year → month → day).
+  - Big numbers: solar production, home consumption, electricity balance and how much of the consumption solar covered, compared with the same period last year (a running period is compared up to the same day and hour).
+  - Animated flow diagram: solar, grid and battery → home, battery and grid, calculated from hourly statistics.
+  - Usage over time by source (solar / battery / grid), export below the axis, last year as a dashed outline.
+  - Money: total for energy, electricity bought and sold, value of own solar, gas and water costs.
+  - Gas and water with monthly / daily bars and peaks, highlights (sunniest month, EV kilometres, share exported, battery cycles).
+  - Data come from the Energy dashboard (or statistics set in the editor), light/dark follows the theme, responsive from phone to wall panel – best in a *Panel* view.
+
 ## [1.3.1] – 2026-10-31
 ### Changed
 - Room card: the per-entity option for lights is now labelled *Room light* – switching it off excludes the light (e.g. a fan on a dimmer, stair lighting) from the lights counter, the title tap and the lights-off badge; its own button still works.

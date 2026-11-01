@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const ORDER = ['igy-energy-card', 'igy-weather-card', 'igy-thermostat-card', 'igy-room-card', 'igy-entities-card',
-  'igy-buttons-card', 'igy-markdown-card', 'igy-circuits-card', 'igy-battery-card', 'igy-camera-card'];
+  'igy-buttons-card', 'igy-markdown-card', 'igy-circuits-card', 'igy-battery-card', 'igy-camera-card', 'igy-energy-story-card'];
 const extra = fs.readdirSync(path.join(root, 'src')).filter((f) => f.endsWith('.js')).map((f) => f.slice(0, -3)).filter((n) => !ORDER.includes(n));
 if (extra.length) { console.error('Karty mimo poradia v build.js:', extra.join(', ')); process.exit(1); }
 let out = `/*! igy-cards v${pkg.version} – ${ORDER.length} kariet pre Home Assistant · ${pkg.homepage} · licencia MIT */\n`;
