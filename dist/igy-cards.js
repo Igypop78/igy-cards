@@ -1,4 +1,4 @@
-/*! igy-cards v1.5.1 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
+/*! igy-cards v1.5.2 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
 
 /* ===== igy-energy-card ===== */
 /*
@@ -5016,4 +5016,4 @@
     window.customCards.push({ type: 'igy-energy-story-card', name: 'Igy Energy Story', description: _('Čo prináša FVE a batéria – prínos, obchod so sieťou, návratnosť a náklady domu'), preview: false });
 })();
 
-console.info('%c IGY-CARDS %c 1.5.1 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
+console.info('%c IGY-CARDS %c 1.5.2 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');

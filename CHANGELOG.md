@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.2] – 2026-11-01
+### Fixed
+- README images (icon, screenshots) now use absolute URLs, so they show in HACS.
+
 ## [1.5.1] – 2026-11-01
 ### Fixed
 - Energy story: *Configuration error – Cannot read properties of undefined (reading 'tariff')* when the editor received `hass` before its configuration.

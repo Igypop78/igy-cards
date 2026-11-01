@@ -1,12 +1,12 @@
-<p align="center"><img src="docs/images/icon.png" width="120" alt="Igy Cards"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/icon.png" width="120" alt="Igy Cards"></p>
 
 # Igy Cards
 
-Ten custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits, battery/BMS and cameras. All cards ship in a single file, so one HACS install gives you all of them.
+Eleven custom Lovelace cards for Home Assistant in one shared visual style – energy, weather with PV forecast, heating, rooms, entities, buttons, markdown, electrical circuits, battery/BMS, cameras and an energy story. All cards ship in a single file, so one HACS install gives you all of them.
 
 > The cards and their editors follow your Home Assistant language: **English** and **Slovak** are built in (other languages fall back to English). Every card has a visual editor; nothing needs a build step or extra dependencies.
 
-![Energy card](docs/images/energy.webp)
+![Energy card](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/energy.webp)
 
 ## Cards
 
@@ -26,11 +26,11 @@ Ten custom Lovelace cards for Home Assistant in one shared visual style – ener
 
 | | | |
 |---|---|---|
-| ![Weather](docs/images/weather.webp) | ![Thermostats](docs/images/thermostat.webp) | ![Circuits](docs/images/circuits.webp) |
-| ![Battery](docs/images/battery.webp) | ![Entities](docs/images/entities.webp) | ![Buttons](docs/images/buttons.webp) |
-| ![Rooms](docs/images/room.webp) | ![Cameras](docs/images/camera.webp) | ![Markdown](docs/images/markdown.webp) |
+| ![Weather](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/weather.webp) | ![Thermostats](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/thermostat.webp) | ![Circuits](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/circuits.webp) |
+| ![Battery](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/battery.webp) | ![Entities](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/entities.webp) | ![Buttons](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/buttons.webp) |
+| ![Rooms](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/room.webp) | ![Cameras](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/camera.webp) | ![Markdown](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/markdown.webp) |
 
-![Energy story](docs/images/energy-story.webp)
+![Energy story](https://raw.githubusercontent.com/Igypop78/igy-cards/main/docs/images/energy-story.webp)
 
 Screenshots use the default Home Assistant light theme with sample data, UI language English.
 
