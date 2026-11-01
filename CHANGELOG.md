@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.1] – 2026-11-01
+### Fixed
+- Energy story: *Configuration error – Cannot read properties of undefined (reading 'tariff')* when the editor received `hass` before its configuration.
+
 ## [1.5.0] – 2026-11-01
 ### Changed
 - **igy-energy-story-card redesigned** – instead of flow diagrams and charts it now tells what your solar and battery bring, Apple style, by month / year / all time:

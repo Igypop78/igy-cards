@@ -83,7 +83,9 @@
     static getStubConfig() { return { view: 'month' }; }
     setConfig(c) {
       this._cfg = Object.assign({}, DEF, c || {});
-      this._tar = Object.assign({}, DEF_TAR, this._cfg.tariff || {});
+      const tar = this._cfg.tariff && typeof this._cfg.tariff === 'object' ? this._cfg.tariff : {};
+      this._tar = Object.assign({}, DEF_TAR, tar);
+      if (!Array.isArray(this._tar.nt_hours)) this._tar.nt_hours = DEF_TAR.nt_hours;
       this._ivs = intervals(this._tar.nt_hours);
       this._mode = ['month', 'year', 'total'].includes(this._cfg.view) ? this._cfg.view : 'month';
       this._at = new Date(); this._ids = null; this._months = {}; this._start = null;
@@ -91,6 +93,7 @@
       if (this._hass) this._load();
     }
     set hass(h) {
+      if (!this._cfg) this.setConfig({});
       const first = !this._hass; this._hass = h; setLang(h);
       const dark = !!(h.themes && h.themes.darkMode);
       if (this._wrap && this._dark !== dark) { this._dark = dark; this._wrap.classList.toggle('dark', dark); }
@@ -453,10 +456,10 @@
   `;
 
   class IgyEnergyStoryCardEditor extends HTMLElement {
-    setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
-    _data() { const c = this._cfg, t = c.tariff || {}; return Object.assign({ view: 'month' }, c, { vt: t.vt != null ? t.vt : DEF_TAR.vt, nt: t.nt != null ? t.nt : DEF_TAR.nt }); }
+    setConfig(c) { this._cfg = Object.assign({}, c || {}); if (this._f) this._f.data = this._data(); }
+    _data() { const c = this._cfg || {}, t = c.tariff || {}; return Object.assign({ view: 'month' }, c, { vt: t.vt != null ? t.vt : DEF_TAR.vt, nt: t.nt != null ? t.nt : DEF_TAR.nt }); }
     set hass(h) {
-      setLang(h); this._hass = h;
+      setLang(h); this._hass = h; this._cfg = this._cfg || {};
       if (!this._f) {
         const f = this._f = document.createElement('ha-form');
         const num = (n, unit, max, step) => ({ name: n, selector: { number: { min: 0, max, step, mode: 'box', unit_of_measurement: unit } } });
@@ -474,8 +477,8 @@
           battery_price: _('Cena batérie'), system_price: _('Cena celej FVE'), install_date: _('Dátum inštalácie'), vt: _('Cena VT'), nt: _('Cena NT'), price_stat: _('Spotová cena (štatistika)') };
         f.computeLabel = (x) => L[x.name] || x.name;
         f.addEventListener('value-changed', (e) => {
-          const v = Object.assign({}, e.detail.value), c = { type: this._cfg.type || 'custom:igy-energy-story-card' };
-          const tar = Object.assign({}, this._cfg.tariff || {});
+          const v = Object.assign({}, e.detail.value), c = { type: (this._cfg && this._cfg.type) || 'custom:igy-energy-story-card' };
+          const tar = Object.assign({}, (this._cfg && this._cfg.tariff) || {});
           ['vt', 'nt'].forEach((k) => { if (v[k] != null && v[k] !== '' && v[k] !== DEF_TAR[k]) tar[k] = v[k]; else delete tar[k]; delete v[k]; });
           Object.keys(v).forEach((k) => { if (k === 'type' || k === 'tariff' || v[k] === '' || v[k] == null || (k === 'view' && v[k] === 'month')) return; c[k] = v[k]; });
           if (Object.keys(tar).length) c.tariff = tar;
