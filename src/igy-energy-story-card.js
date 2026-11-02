@@ -9,6 +9,8 @@
  *   battery_price: 3500              # € – návratnosť batérie (voliteľné)
  *   system_price: 8000               # € – návratnosť celej FVE (voliteľné)
  *   install_date: 2024-02-01         # od kedy počítať návratnosť (inak od prvých dát)
+ *   payback_from: 2026-09-01         # voliteľné – „počítať od“: návratnosť, cykly od nuly a Celkovo od tohto dňa
+ *                                    #   (v karte sa dá prepínať Od inštalácie / Od dátumu)
  *   tariff:                          # cena elektriny bez FVE (úspora a prínos)
  *     vt: 0.21
  *     nt: 0.12
@@ -49,7 +51,8 @@
     'Čo prináša FVE a batéria – prínos, obchod so sieťou, návratnosť a náklady domu': 'What your solar and battery bring – benefit, grid trading, payback and home costs',
     'Úvodné zobrazenie': 'Initial view', 'Kapacita batérie': 'Battery capacity', 'Garantované cykly': 'Guaranteed cycles',
     'Celkové cykly batérie (entita)': 'Total battery cycles (entity)', 'Cena batérie': 'Battery price', 'Cena celej FVE': 'Whole PV system price',
-    'Dátum inštalácie': 'Install date', 'Cena VT': 'Peak price', 'Cena NT': 'Off-peak price', 'Spotová cena (štatistika)': 'Spot price (statistic)',
+    'Dátum inštalácie': 'Install date', 'Počítať od (návratnosť, cykly)': 'Count from (payback, cycles)', 'od {0}': 'since {0}',
+    'Ročne pri tempe od {0}': 'Yearly at pace since {0}', 'Cena VT': 'Peak price', 'Cena NT': 'Off-peak price', 'Spotová cena (štatistika)': 'Spot price (statistic)',
     'Štatistiky (prázdne = z Energy dashboardu)': 'Statistics (empty = from the Energy dashboard)'
   };
   const COL = { sol: '#ff9f0a', bat: '#40c8e0', imp: '#ff6961', exp: '#1fb457', gas: '#ff9500', wat: '#0a84ff' };
@@ -89,6 +92,7 @@
       this._ivs = intervals(this._tar.nt_hours);
       this._mode = ['month', 'year', 'total'].includes(this._cfg.view) ? this._cfg.view : 'month';
       this._at = new Date(); this._ids = null; this._months = {}; this._start = null;
+      this._fromOn = !!this._fromDate();
       if (this.shadowRoot) this._render();
       if (this._hass) this._load();
     }
@@ -139,6 +143,13 @@
       if (c.price_stat) ids.price = [].concat(c.price_stat);
       return ids;
     }
+    _fromDate() {
+      const v = this._cfg && this._cfg.payback_from; if (!v) return null;
+      const d = new Date(String(v).length <= 10 ? v + 'T00:00:00' : v); return isNaN(d) ? null : d;
+    }
+    _custom() { return this._fromOn && !!this._fromDate(); }
+    _base() { return this._custom() ? this._fromDate() : this._start; }
+    _dLong(d) { return d.toLocaleDateString(this._lang(), { day: 'numeric', month: 'long', year: 'numeric' }); }
     async _findStart() {
       if (this._cfg.install_date) { const d = new Date(this._cfg.install_date); if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), 1); }
       const ids = this._ids, probe = ids.sol.concat(ids.gin).slice(0, 2);
@@ -210,7 +221,7 @@
       const at = this._at, lang = this._lang();
       if (this._mode === 'year') { const a = new Date(at.getFullYear(), 0, 1); return { a, b: new Date(at.getFullYear() + 1, 0, 1), lab: String(at.getFullYear()) }; }
       if (this._mode === 'total') {
-        const a = this._start || new Date(2024, 0, 1);
+        const a = this._base() || new Date(2024, 0, 1);
         return { a, b: new Date(Date.now() + 3600000), lab: _('Od {0}', a.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' })) };
       }
       const a = new Date(at.getFullYear(), at.getMonth(), 1), l = a.toLocaleDateString(lang, { month: 'long', year: 'numeric' });
@@ -229,10 +240,11 @@
         const now = new Date(), y0 = new Date(now.getFullYear(), 0, 1), m12 = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
         const allRows = await this._rows(this._start, new Date(now.getTime() + 3600000));
         if (seq !== this._seq) return;
-        const tot = this._agg(allRows), year = this._agg(allRows.filter((x) => x.t >= y0.getTime()));
-        const last12 = this._agg(allRows.filter((x) => x.t >= Math.max(m12.getTime(), this._start.getTime())));
-        const span = Math.max(1, (now - Math.max(m12, this._start)) / 86400000) / 365.25;
-        this._d = { r, cur, tot, year, perYear: { benefit: last12.benefit / span, battery: last12.battery / span } };
+        const base = this._base(), from = Math.max(m12.getTime(), base.getTime());
+        const tot = this._agg(allRows.filter((x) => x.t >= base.getTime())), year = this._agg(allRows.filter((x) => x.t >= y0.getTime()));
+        const last12 = this._agg(allRows.filter((x) => x.t >= from));
+        const span = Math.max(1, (now - from) / 86400000) / 365.25;
+        this._d = { r, cur, tot, year, base, perYear: { benefit: last12.benefit / span, battery: last12.battery / span } };
         this._draw();
       } catch (e) {
         console.error('igy-energy-story-card', e);
@@ -248,6 +260,10 @@
         <i class="nb" data-n="-1">‹</i><i class="nb" data-n="1" id="nx">›</i></div></header><div id="body"></div></div></ha-card>`;
       const R = this.shadowRoot; this._wrap = R.getElementById('w');
       R.getElementById('seg').addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (!b || b.dataset.m === this._mode) return; this._mode = b.dataset.m; this._load(); });
+      R.getElementById('body').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-from]'); if (!b) return;
+        const on = b.dataset.from === 'custom'; if (on === this._fromOn) return; this._fromOn = on; this._load(true);
+      });
       R.querySelectorAll('.nb').forEach((b) => b.addEventListener('click', () => {
         if (b.classList.contains('dis')) return; const n = +b.dataset.n, a = this._at;
         this._at = this._mode === 'year' ? new Date(a.getFullYear() + n, 0, 1) : new Date(a.getFullYear(), a.getMonth() + n, 1); this._load();
@@ -277,7 +293,7 @@
     _hero() {
       const { cur: s, tot, year, r } = this._d, lang = this._lang();
       const sol = Math.max(0, s.solar), bat = s.battery, sum = Math.abs(sol) + Math.abs(bat) || 1;
-      const start = this._start.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
+      const start = this._d.base.toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
       const cum = this._mode === 'total' ? '' : `<div class="cum">${this._mode === 'month' ? `<div>${_('Rok {0}', r.a.getFullYear())}<b>${this._eur(year.benefit, 0)}</b></div>` : ''}<div>${_('Od {0} spolu', start)}<b>${this._eur(tot.benefit, 0)}</b></div></div>`;
       return `<section class="r1"><div class="big">
         <svg class="sun" viewBox="0 0 100 100"><circle cx="50" cy="50" r="22" fill="#fff"/><g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M50 8v12M50 80v12M8 50h12M80 50h12M20 20l9 9M71 71l9 9M20 80l9-9M71 29l9-9"/></g></svg>
@@ -340,7 +356,9 @@
     }
     _battery() {
       const c = this._cfg, s = this._d.cur, cap = +c.battery_capacity || 0, life = +c.battery_cycle_life || 0, lang = this._lang();
-      const st = c.battery_cycles_entity && this._hass.states[c.battery_cycles_entity], total = st ? parseFloat(st.state) : NaN;
+      const st = c.battery_cycles_entity && this._hass.states[c.battery_cycles_entity];
+      // „počítať od“: cykly začínajú od nuly k zvolenému dňu
+      const total = this._custom() ? (cap > 0 ? this._d.tot.bout / cap : NaN) : st ? parseFloat(st.state) : NaN;
       const cyc = cap > 0 ? s.bout / cap : 0, rem = life > 0 && isFinite(total) ? Math.max(0, 1 - total / life) : null;
       const wear = life > 0 && +c.battery_price > 0 ? +c.battery_price / life : null;
       const best = [...s.days.entries()].sort((a, b) => b[1].net - a[1].net)[0];
@@ -356,7 +374,7 @@
           <rect x="10" y="10" width="136" height="64" rx="12" fill="rgba(48,209,88,.12)"/><rect class="anim bf" x="10" y="10" width="${(136 * fill).toFixed(1)}" height="64" rx="12" fill="url(#bg)"/>
           ${rem != null ? `<text x="78" y="52" text-anchor="middle" class="bp">${Math.round(rem * 100)} %</text>` : ''}</svg>
         <div><div class="bnum">${this._nf(cyc, cyc < 10 ? 1 : 0)}<small>${_('cyklov')}</small></div>
-          ${rem != null ? `<div class="mut sm">${_('ostáva {0} % životnosti · {1} z {2} cyklov', Math.round(rem * 100), this._nf(total, 0), this._nf(life, 0))}</div>` : ''}</div></div>
+          ${rem != null ? `<div class="mut sm">${_('ostáva {0} % životnosti · {1} z {2} cyklov', Math.round(rem * 100), this._nf(total, 0), this._nf(life, 0))}${this._custom() ? ' · ' + _('od {0}', this._dLong(this._d.base)) : ''}</div>` : ''}</div></div>
         ${kv.length ? `<div class="kv">${kv.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('')}</div>` : ''}</div>`;
     }
     _payback() {
@@ -368,8 +386,11 @@
       const yb = [];
       if (bp) yb.push([_('Batéria zaplatená o'), yrs(bp - tot.battery, perYear.battery)]);
       if (sp) yb.push([_('FVE zaplatená o'), yrs(sp - tot.benefit, perYear.benefit)]);
-      yb.push([_('Ročne prináša'), '~' + this._eur(perYear.benefit, 0)]);
-      return `<div class="glass"><div class="lbl">⏳ ${_('Návratnosť investície')}</div>
+      yb.push([this._custom() ? _('Ročne pri tempe od {0}', this._d.base.toLocaleDateString(this._lang(), { day: 'numeric', month: 'numeric' })) : _('Ročne prináša'), '~' + this._eur(perYear.benefit, 0)]);
+      const fd = this._fromDate(), inst = this._start;
+      const tog = fd ? `<div class="fseg">${[['install', _('Od {0}', inst.toLocaleDateString(this._lang(), { month: 'numeric', year: 'numeric' }))], ['custom', _('Od {0}', fd.toLocaleDateString(this._lang(), { day: 'numeric', month: 'numeric', year: 'numeric' }))]]
+        .map(([k, t]) => `<b data-from="${k}" class="${(k === 'custom') === this._custom() ? 'on' : ''}">${esc(t)}</b>`).join('')}</div>` : '';
+      return `<div class="glass"><div class="ph"><div class="lbl">⏳ ${_('Návratnosť investície')}</div>${tog}</div>
         ${bp ? bar(_('Batéria · {0}', this._eur(bp, 0)), bp, tot.battery, `linear-gradient(90deg,${COL.bat},#30d158)`) : ''}
         ${sp ? bar(_('Celá FVE s batériou · {0}', this._eur(sp, 0)), sp, tot.benefit, 'linear-gradient(90deg,#ffcc00,#ff9f0a)') : ''}
         <div class="yrs">${yb.map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('')}</div></div>`;
@@ -439,6 +460,9 @@
   .bf{transform-origin:10px 0;transform:scaleX(0);transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}.bf.in{transform:none}
   .bnum{font-size:clamp(40px,4cqi,52px);font-weight:800;letter-spacing:-.04em;line-height:1}.bnum small{font-size:18px;color:var(--mut);margin-left:6px;letter-spacing:0;font-weight:600}
   .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:16px}.kv div{font-size:12px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.03em}.kv b{display:block;font-size:22px;color:var(--tx);letter-spacing:-.02em;text-transform:none;margin-top:2px}
+  .ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .fseg{display:flex;background:var(--tr);border-radius:10px;padding:2px}.fseg b{font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;color:var(--mut);cursor:pointer;white-space:nowrap}
+  .fseg b.on{background:var(--gl-b);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.12)}.w:not(.dark) .fseg b.on{background:#fff}
   .pb{margin-top:16px}.pb .row{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:600;margin-bottom:7px}.pb .row b{font-size:15px;white-space:nowrap}
   .track{height:18px;border-radius:9px;background:var(--tr);overflow:hidden;position:relative}
   .pw{position:absolute;inset:0 auto 0 0;width:0;border-radius:9px;transition:width 1.3s cubic-bezier(.2,.8,.2,1)}.pw.in{width:var(--w)}
@@ -468,13 +492,13 @@
           { name: 'view', selector: { select: { mode: 'dropdown', options: [{ value: 'month', label: _('Mesiac') }, { value: 'year', label: _('Rok') }, { value: 'total', label: _('Celkovo') }] } } },
           { type: 'grid', name: '', schema: [num('battery_capacity', 'kWh', 500, 0.5), num('battery_cycle_life', '', 20000, 100), num('battery_price', '€', 100000, 50), num('system_price', '€', 200000, 50)] },
           { name: 'battery_cycles_entity', selector: { entity: { domain: ['sensor', 'number', 'input_number'] } } },
-          { type: 'grid', name: '', schema: [{ name: 'install_date', selector: { date: {} } }, num('vt', '€/kWh', 2, 0.001), num('nt', '€/kWh', 2, 0.001)] },
+          { type: 'grid', name: '', schema: [{ name: 'install_date', selector: { date: {} } }, { name: 'payback_from', selector: { date: {} } }, num('vt', '€/kWh', 2, 0.001), num('nt', '€/kWh', 2, 0.001)] },
           { name: 'price_stat', selector: { statistic: {} } },
           { type: 'expandable', name: '', title: _('Štatistiky (prázdne = z Energy dashboardu)'), icon: 'mdi:chart-box-outline',
             schema: ['stat_solar', 'stat_grid_in', 'cost_grid_in', 'stat_grid_out', 'cost_grid_out', 'stat_battery_in', 'stat_battery_out', 'stat_gas', 'cost_gas', 'stat_water', 'cost_water'].map(st) }
         ];
         const L = { view: _('Úvodné zobrazenie'), battery_capacity: _('Kapacita batérie'), battery_cycle_life: _('Garantované cykly'), battery_cycles_entity: _('Celkové cykly batérie (entita)'),
-          battery_price: _('Cena batérie'), system_price: _('Cena celej FVE'), install_date: _('Dátum inštalácie'), vt: _('Cena VT'), nt: _('Cena NT'), price_stat: _('Spotová cena (štatistika)') };
+          battery_price: _('Cena batérie'), system_price: _('Cena celej FVE'), install_date: _('Dátum inštalácie'), payback_from: _('Počítať od (návratnosť, cykly)'), vt: _('Cena VT'), nt: _('Cena NT'), price_stat: _('Spotová cena (štatistika)') };
         f.computeLabel = (x) => L[x.name] || x.name;
         f.addEventListener('value-changed', (e) => {
           const v = Object.assign({}, e.detail.value), c = { type: (this._cfg && this._cfg.type) || 'custom:igy-energy-story-card' };

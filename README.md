@@ -160,6 +160,7 @@ battery_cycles_entity: sensor.total_battery_life_cycles_inverter
 battery_price: 3500               # € – battery payback (optional)
 system_price: 8000                # € – whole PV system payback (optional)
 install_date: 2024-02-01
+payback_from: 2026-09-01          # optional – switch "since installation / since date" for payback and cycles
 tariff:                           # what electricity would cost without PV
   vt: 0.21
   nt: 0.12

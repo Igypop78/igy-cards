@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0] – 2026-11-02
+### Added
+- Energy story: new option `payback_from` (*Count from*). When set, the payback card gets a switch *Since installation / Since date*. With the date selected:
+  - payback of the battery and the whole PV system counts only what was earned since that day, and the yearly pace is taken from that period,
+  - battery cycles start from zero on that day (remaining life is calculated from them instead of the cycles entity),
+  - the *All time* view and the "since … total" figure start on that day.
+
 ## [1.5.2] – 2026-11-01
 ### Fixed
 - README images (icon, screenshots) now use absolute URLs, so they show in HACS.
