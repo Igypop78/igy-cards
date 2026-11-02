@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.1] – 2026-11-02
+### Fixed
+- Room card: the area / device prefix is now removed from names regardless of case and diacritics (area *Kúpelňa Dole* + entity *Kúpeľňa dole hlavné svetlo* → *Hlavné svetlo*), and also when the device name itself starts with the area name (*Kúpeľňa dole svetlá Ping* → *Ping*).
+
 ## [1.6.0] – 2026-11-02
 ### Added
 - Energy story: new option `payback_from` (*Count from*). When set, the payback card gets a switch *Since installation / Since date*. With the date selected:

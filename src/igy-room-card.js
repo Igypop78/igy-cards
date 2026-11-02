@@ -85,8 +85,17 @@
     const s = hass.states[id], e = hass.entities && hass.entities[id], a = hass.areas && hass.areas[aid];
     let n = (s && s.attributes.friendly_name) || id;
     const d = e && e.device_id && hass.devices[e.device_id], dn = d && (d.name_by_user || d.name);
-    [a && a.name, aid && aid.replace(/_/g, ' '), dn].forEach((p) => {
-      if (p && n.toLowerCase().startsWith(p.toLowerCase() + ' ') && n.length > p.length + 1) n = n.slice(p.length + 1);
+    // compare without case and diacritics ("Kúpelňa Dole" matches "Kúpeľňa dole …"), char by char so lengths stay aligned
+    const fold = (x) => Array.from(String(x)).map((c) => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() || c).join('');
+    const strip = (x, p) => {
+      const chars = Array.from(x), pl = Array.from(String(p)).length;
+      return chars.length > pl + 1 && fold(chars.slice(0, pl).join('')) === fold(p) && /[\s\-–:]/.test(chars[pl]) ? chars.slice(pl + 1).join('').trim() : x;
+    };
+    // device name without the area prefix too ("Kúpeľňa dole svetlá Ping" → "Ping")
+    const dnShort = dn && a && a.name ? strip(dn, a.name) : null;
+    [a && a.name, aid && aid.replace(/_/g, ' '), dn, dnShort !== dn ? dnShort : null].forEach((p) => {
+      if (!p) return;
+      n = strip(n, p);
     });
     return n.charAt(0).toUpperCase() + n.slice(1);
   }
