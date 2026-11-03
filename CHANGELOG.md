@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.2] – 2026-11-03
+### Changed
+- Energy card: the house icon in the header has a new rounded, Home Assistant–like shape with a lightning bolt cut out in the middle (follows the card background, so it works in dark themes too), and it is slightly bigger.
+
 ## [1.7.1] – 2026-11-03
 ### Changed
 - Energy card: the ring in the header is replaced by a house icon that fills from the bottom with the colours of the current sources (solar / battery / grid). It is full at `home_max` (default 10 kW, *House full at* in the editor). Tiny sources (under 2 % and 50 W) are ignored, and *now 0.00 €/h* is shown without a sign.

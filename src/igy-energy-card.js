@@ -132,7 +132,7 @@
     "Voliteľné – farba pruhu podľa teploty.": "Optional – bar color follows the temperature."
   };
 
-  const VERSION = '0.9.0';
+  const VERSION = '0.9.1';
 
   const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true, balance: true };
   const COL = { pv1: '#ff8a1f', pv2: '#ffc27a', sol: '#ff9f0a', bat: '#40c8e0', chg: '#30d158', dis: '#ff6961', imp: '#ff6961', exp: '#30d158', gas: '#ffd60a', wat: '#0a84ff' };
@@ -149,7 +149,8 @@
     chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
     eur: 'M18 6.5A7 7 0 1 0 18 17.5M4 10h9M4 14h9'
   };
-  const HOUSE = 'M30 5 L55 26 L50 26 L50 55 L10 55 L10 26 L5 26 Z', HB = 55, HH = 50;   // domček v hlavičke (zdola y=55, výška 50)
+  const HOUSE = 'M27.2 6.3Q30 4 32.8 6.3L54.5 24Q56 25.3 56 27.5L56 52Q56 56 52 56L8 56Q4 56 4 52L4 27.5Q4 25.3 5.5 24Z', HB = 56, HH = 52;   // domček v hlavičke (zdola y=56, výška 52)
+  const BOLT = 'M32.5 22L23 37.5h7L27.5 50 37 34.5h-7L32.5 22Z';
   const svg = (p, c) => `<svg viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
   
   class HomeEnergyCard extends HTMLElement {
@@ -240,7 +241,7 @@
             <div><div class="hv"><b id="home_v"></b><small id="home_u"></small></div><div class="rate" id="rate"></div></div>
             <div class="rng"><svg viewBox="0 0 60 60"><defs><clipPath id="hcl"><path d="${HOUSE}"/></clipPath></defs>
                 <path class="hb" d="${HOUSE}"/><g clip-path="url(#hcl)">${['s', 'b', 'g'].map((k) => `<rect id="rg_${k}" x="0" y="${HB}" width="60" height="0" fill="${{ s: COL.sol, b: COL.bat, g: COL.imp }[k]}"/>`).join('')}</g>
-                <path class="ho" d="${HOUSE}"/></svg>
+                <path class="bo" d="${BOLT}"/></svg>
               <div class="ric"><span id="ri_s" style="color:${COL.sol}">${svg(IC.sun)}</span><span id="ri_b" style="color:${COL.bat}">${svg(IC.bat)}</span><span id="ri_g" style="color:${COL.imp}">${svg(IC.grid)}</span></div></div>
           </div>
         </div>
@@ -568,10 +569,10 @@
     .rate:empty { display: none; }
     .rate b { font-weight: 500; }
     .rng { display: flex; align-items: center; gap: 10px; flex: none; }
-    .rng svg { width: 64px; height: 64px; display: block; }
+    .rng svg { width: 68px; height: 68px; display: block; }
     .rng rect { transition: y 1s cubic-bezier(.3,.7,.3,1), height 1s cubic-bezier(.3,.7,.3,1); }
     .rng .hb { fill: rgba(127,127,127,.15); }
-    .rng .ho { fill: none; stroke: var(--secondary-text-color); stroke-width: 1.6; stroke-linejoin: round; opacity: .55; }
+    .rng .bo { fill: var(--ha-card-background, var(--card-background-color, #fff)); stroke: var(--ha-card-background, var(--card-background-color, #fff)); stroke-width: 1.5; stroke-linejoin: round; }
     .ric { display: flex; flex-direction: column; gap: 5px; }
     .ric span { display: flex; } .ric svg { width: 17px; height: 17px; }
     .bal { margin-top: 14px; cursor: pointer; }
