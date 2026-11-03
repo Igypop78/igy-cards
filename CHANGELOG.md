@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.3] – 2026-11-03
+### Changed
+- Energy card: today's balance above the axis is larger.
+- Energy card: the dot in the top right now means something – green (pulsing) = the home power sensor sent a value in the last 5 minutes, grey = no new value for longer, red = sensor unavailable. Hover shows the reason.
+
 ## [1.7.2] – 2026-11-03
 ### Changed
 - Energy card: the house icon in the header has a new rounded, Home Assistant–like shape with a lightning bolt cut out in the middle (follows the card background, so it works in dark themes too), and it is slightly bigger.

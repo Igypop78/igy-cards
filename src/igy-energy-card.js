@@ -45,6 +45,9 @@
     "TUV": "Hot water",
     "Energia": "Energy",
     "teraz": "now",
+    "Senzor spotreby je nedostupný": "Consumption sensor unavailable",
+    "Bez novej hodnoty {0} min": "No new value for {0} min",
+    "Dáta sú aktuálne": "Data is up to date",
     "Plný domček pri": "House full at",
     "Domček v hlavičke sa vyfarbí podľa zdroja a pri tejto spotrebe je plný.": "The house in the header fills with the colours of the current sources and is full at this consumption.",
     "Bilancia dňa v € v hlavičke": "Today's balance in € in the header",
@@ -132,7 +135,7 @@
     "Voliteľné – farba pruhu podľa teploty.": "Optional – bar color follows the temperature."
   };
 
-  const VERSION = '0.9.1';
+  const VERSION = '0.9.2';
 
   const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true, balance: true };
   const COL = { pv1: '#ff8a1f', pv2: '#ffc27a', sol: '#ff9f0a', bat: '#40c8e0', chg: '#30d158', dis: '#ff6961', imp: '#ff6961', exp: '#30d158', gas: '#ffd60a', wat: '#0a84ff' };
@@ -168,8 +171,8 @@
     }
     setConfig(c) { this._cfg = Object.assign({}, DEF, c || {}); this._built = false; this._ovIdsC = null; this._ov = null; if (this._hass && this.isConnected) { clearInterval(this._ovT); this._ovT = null; setTimeout(() => this._ovStart()); } if (this._hass) this._render(); }
     set hass(h) { setLang(h); const first = !this._hass; this._hass = h; this._render(); if (first) this._ovStart(); }
-    connectedCallback() { if (this._hass) this._ovStart(); }
-    disconnectedCallback() { clearInterval(this._ovT); this._ovT = null; }
+    connectedCallback() { if (this._hass) this._ovStart(); clearInterval(this._liveT); this._liveT = setInterval(() => this._live(), 30000); }
+    disconnectedCallback() { clearInterval(this._ovT); this._ovT = null; clearInterval(this._liveT); this._liveT = null; }
     getCardSize() { return 7; }
     getGridOptions() { return { columns: 12, min_columns: 6 }; }
 
@@ -183,6 +186,17 @@
     _pw(w) { const a = Math.abs(w || 0); return a < 1000 ? [this._nf(Math.round(a), 0), 'W'] : [this._nf(a / 1000, a < 10000 ? 2 : 1), 'kW']; }
     _price(id) { const v = this._num(id); if (v == null) return null; return /MWh/i.test(this._unit(id)) ? v / 1000 : /Wh$/.test(this._unit(id)) && !/kWh/i.test(this._unit(id)) ? v * 1000 : v; }
     _balOn() { return this._cfg && this._cfg.balance !== false; }
+    // bodka vpravo hore: zelená = spotreba domu prišla v posledných 5 min, sivá = dlhšie bez zmeny, červená = senzor nedostupný
+    _live() {
+      const el = this.shadowRoot && this.shadowRoot.getElementById('live'); if (!el || !this._hass) return;
+      const c = this._cfg, id = c.home_power || c.grid_power || c.battery_power || c.solar_power, st = this._st(id);
+      const off = !st || st.state === 'unavailable' || st.state === 'unknown';
+      const t = st ? Math.max(Date.parse(st.last_updated) || 0, Date.parse(st.last_reported) || 0, Date.parse(st.last_changed) || 0) : 0;
+      const age = (Date.now() - t) / 60000, stale = !off && age > 5;
+      el.classList.toggle('off', off); el.classList.toggle('stale', stale);
+      const tip = off ? _('Senzor spotreby je nedostupný') : stale ? _('Bez novej hodnoty {0} min', Math.round(age)) : _('Dáta sú aktuálne');
+      if (el.title !== tip) el.title = tip;
+    }
     _more(id) { if (id) this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: id }, bubbles: true, composed: true })); }
 
     _data() {
@@ -236,7 +250,7 @@
 
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
         <div class="hero" data-id="${c.home_power || ''}">
-          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || _('Energia'))}</span><span class="live"></span></div>
+          <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || _('Energia'))}</span><span class="live" id="live"></span></div>
           <div class="hrow">
             <div><div class="hv"><b id="home_v"></b><small id="home_u"></small></div><div class="rate" id="rate"></div></div>
             <div class="rng"><svg viewBox="0 0 60 60"><defs><clipPath id="hcl"><path d="${HOUSE}"/></clipPath></defs>
@@ -274,7 +288,7 @@
       const $ = (id) => r.getElementById(id), T = (id, t) => { const el = $(id); if (el && el.textContent !== t) el.textContent = t; };
       const W = (id, f) => { const el = $(id); if (el) el.style.width = (Math.max(0, Math.min(1, f)) * 100).toFixed(1) + '%'; };
       // dom: dĺžka pruhu = spotreba / maximum, farby = odkiaľ ide
-      let p = this._pw(d.home); T('home_v', p[0]); T('home_u', p[1]);
+      let p = this._pw(d.home); T('home_v', p[0]); T('home_u', p[1]); this._live();
       // domček: výška náplne = spotreba / home_max, vrstvy zdola podľa zdroja (slnko, batéria, sieť); ikony len pri aktívnych zdrojoch
       const m = d.mix, tot = d.mixTot, seg = [['s', m.sol], ['b', m.bat], ['g', m.grid]].map(([k, v]) => [k, v / tot > 0.02 || v > 50 ? v / tot : 0]);
       const fill = d.home > 5 ? Math.max(0.04, Math.min(1, d.home / 1000 / (c.home_max || 10))) : 0;
@@ -557,7 +571,9 @@
     [data-id] { cursor: pointer; }
     .hl { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--secondary-text-color); letter-spacing: .02em; }
     .hi svg { width: 16px; height: 16px; display: block; }
-    .live { width: 6px; height: 6px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; margin-left: auto; animation: pl 2.4s infinite; }
+    .live { width: 6px; height: 6px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; margin-left: auto; animation: pl 2.4s infinite; transition: background .4s, box-shadow .4s; }
+    .live.stale { background: #8e8e93; box-shadow: none; animation: none; }
+    .live.off { background: #ff6961; box-shadow: 0 0 8px #ff6961; animation: none; }
     @keyframes pl { 50% { opacity: .3; } }
     .hv { margin-top: 2px; color: var(--primary-text-color); display: flex; align-items: baseline; }
     .hv b { font-size: 46px; font-weight: 300; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
@@ -576,11 +592,11 @@
     .ric { display: flex; flex-direction: column; gap: 5px; }
     .ric span { display: flex; } .ric svg { width: 17px; height: 17px; }
     .bal { margin-top: 14px; cursor: pointer; }
-    .bb { position: relative; display: flex; gap: 2px; height: 10px; margin-top: 26px; border-radius: 99px; background: rgba(127,127,127,.15); }
+    .bb { position: relative; display: flex; gap: 2px; height: 10px; margin-top: 30px; border-radius: 99px; background: rgba(127,127,127,.15); }
     .bb i { height: 100%; min-width: 3px; transition: flex .8s; }
     .bb i:first-child { border-radius: 99px 0 0 99px; } .bb i:last-of-type { border-radius: 0 99px 99px 0; } .bb i:only-of-type { border-radius: 99px; }
     .bb .ax { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--primary-text-color); }
-    .bb .bt { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 14px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .bb .bt { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 17px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .bl { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
     .bl > span { display: flex; flex-wrap: wrap; gap: 2px 12px; }
     .bl > span > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
