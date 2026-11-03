@@ -1,9 +1,13 @@
 # Changelog
 
+## [1.7.1] – 2026-11-03
+### Changed
+- Energy card: the ring in the header is replaced by a house icon that fills from the bottom with the colours of the current sources (solar / battery / grid). It is full at `home_max` (default 10 kW, *House full at* in the editor). Tiny sources (under 2 % and 50 W) are ignored, and *now 0.00 €/h* is shown without a sign.
+
 ## [1.7.0] – 2026-11-03
 ### Changed
 - Energy card: new header.
-  - Next to the current power there is a ring showing where the house is drawing from right now (solar / battery / grid); icons are shown only for active sources. The old bar with percentages is gone (`home_max` is no longer used).
+  - Next to the current power there is a ring showing where the house is drawing from right now (solar / battery / grid); icons are shown only for active sources. The old bar with percentages is gone (`home_max` now sets when the house icon is full – see 1.7.1).
   - New optional `price_import` / `price_export` (€/kWh, €/MWh also works) show *now +0.42 €/h* – green when earning, red when paying.
   - New bar *today's balance in €* (`balance`, on by default): costs (water, gas, import) from the left, income (export) from the right and an axis in the middle – the larger side crosses it. The result sits above the axis, the amounts with icons below. Tap opens today's overview.
 
