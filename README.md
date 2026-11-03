@@ -13,7 +13,7 @@ Eleven custom Lovelace cards for Home Assistant in one shared visual style – e
 | Card | Type | What it shows |
 |---|---|---|
 | Energy story | `custom:igy-energy-story-card` | Full-screen, Apple-style story of what your solar and battery bring by month / year / all time: benefit, how the battery buys low and sells high, battery life and earnings per cycle, payback and home costs – from the Energy dashboard statistics |
-| Energy | `custom:igy-energy-card` | Live power flows (home, PV, battery, grid, gas, water, hot water) and a collapsible day / week / month / year overview from the Energy dashboard, incl. costs |
+| Energy | `custom:igy-energy-card` | Live power with a ring showing where the house is drawing from, today's balance in € (costs vs. income around a centre axis), power flows (PV, battery, grid, gas, water, hot water) and a collapsible day / week / month / year overview from the Energy dashboard, incl. costs |
 | Weather | `custom:igy-weather-card` | Scrollable hourly strip from midnight to tomorrow with history, sunrise/sunset and a PV-production ring per hour (Solcast), plus the next days |
 | Thermostats | `custom:igy-thermostat-card` | Several climate entities in one card, 24 h heating-demand line, open-window warning |
 | Room | `custom:igy-room-card` | One HA area: lights, temperature, humidity, windows, motion – entities are found from the area automatically; reorder, hide and rename them in the editor (EN / SK) |
@@ -56,6 +56,8 @@ solar_power: sensor.pv_power
 battery_soc: sensor.battery_soc
 battery_power: sensor.battery_power
 grid_power: sensor.grid_power
+price_import: sensor.electricity_import_price   # optional – €/kWh, shows "now … €/h"
+price_export: sensor.electricity_export_price   # optional
 ```
 
 ```yaml

@@ -1,4 +1,4 @@
-/*! igy-cards v1.6.1 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
+/*! igy-cards v1.7.0 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
 
 /* ===== igy-energy-card ===== */
 /*
@@ -23,9 +23,12 @@
  *   today: true                 # dnešné súčty (kWh) v dlaždiciach solár / batéria / sieť
  *   tuv_temp: sensor.temperature_tuv_tank_keep    # teplota TUV, farba 30 °C modrá → 70 °C červená
  *   overview: true              # rozbaľovací prehľad (deň/týždeň/mesiac/rok) z Energy dashboardu
+ *   balance: true               # hlavička: dnešná bilancia v € (náklady vľavo, príjem vpravo, os v strede)
+ *   price_import: sensor.…      # voliteľné – cena nákupu (€/kWh), pre „teraz … €/h“
+ *   price_export: sensor.…      # voliteľné – cena predaja (€/kWh)
  *   stat_solar, stat_pv1, stat_pv2, stat_grid_in, stat_grid_out, cost_grid_in, cost_grid_out,
  *   stat_battery_in, stat_battery_out, stat_gas, cost_gas, stat_water, cost_water   # voliteľné – inak z Energy dashboardu
- *   home_max: 10  solar_max: 10  battery_max: 10  grid_max: 10  gas_max: 25  water_max: 25
+ *   solar_max: 10  battery_max: 10  grid_max: 10  gas_max: 25  water_max: 25
  * Všetko sa dá nastaviť v editore karty. Chýbajúce entity sa jednoducho nezobrazia.
  */
 (function () {
@@ -44,6 +47,12 @@
     "Voda": "Water",
     "TUV": "Hot water",
     "Energia": "Energy",
+    "teraz": "now",
+    "Bilancia dňa v € v hlavičke": "Today's balance in € in the header",
+    "Cena nákupu (€/kWh)": "Import price (€/kWh)",
+    "Cena predaja (€/kWh)": "Export price (€/kWh)",
+    "Náklady a príjem dnes z Energy dashboardu, os v strede.": "Today's costs and income from the Energy dashboard, axis in the middle.",
+    "Voliteľné – spolu s cenou predaja ukáže „teraz … €/h“.": "Optional – together with the export price shows “now … €/h”.",
     "Tento týždeň": "This week",
     "Minulý týždeň": "Last week",
     "Dnes": "Today",
@@ -72,7 +81,6 @@
     "Teplá úžitková voda": "Hot water",
     "Nadpis karty": "Card title",
     "Spotreba domu – výkon": "Home consumption – power",
-    "Mierka pruhu spotreby": "Consumption bar scale",
     "Prehľad (deň / týždeň / mesiac / rok)": "Overview (day / week / month / year)",
     "Dnešné súčty v dlaždiciach": "Today’s totals in the tiles",
     "Výkon FVE spolu": "Total PV power",
@@ -111,7 +119,6 @@
     "Spotreba vody": "Water consumption",
     "Náklad na vodu": "Water cost",
     "W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.": "W or kW. Without it, consumption is calculated from solar, battery and grid.",
-    "Pri tejto hodnote je pruh plný.": "The bar is full at this value.",
     "Rozbaľovací prehľad dole, dáta z Energy dashboardu.": "Collapsible overview at the bottom, data from the Energy dashboard.",
     "Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.": "E.g. “today 21.5 kWh” under solar, battery and grid.",
     "Ak chýba, sčíta sa PV1 + PV2.": "If missing, PV1 + PV2 are added up.",
@@ -126,9 +133,9 @@
     "Voliteľné – farba pruhu podľa teploty.": "Optional – bar color follows the temperature."
   };
 
-  const VERSION = '0.7.1';
+  const VERSION = '0.8.0';
 
-  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true };
+  const DEF = { home_max: 10, solar_max: 10, battery_max: 10, grid_max: 10, gas_max: 25, water_max: 25, tuv_min: 30, tuv_max: 70, pv1_name: 'PV1', pv2_name: 'PV2', title: '', overview: true, balance: true };
   const COL = { pv1: '#ff8a1f', pv2: '#ffc27a', sol: '#ff9f0a', bat: '#40c8e0', chg: '#30d158', dis: '#ff6961', imp: '#ff6961', exp: '#30d158', gas: '#ffd60a', wat: '#0a84ff' };
   const IC = {
     sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
@@ -143,6 +150,7 @@
     chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
     eur: 'M18 6.5A7 7 0 1 0 18 17.5M4 10h9M4 14h9'
   };
+  const RC = 2 * Math.PI * 23;   // obvod prstenca
   const svg = (p, c) => `<svg viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
   
   class HomeEnergyCard extends HTMLElement {
@@ -173,6 +181,8 @@
     _lang() { return this._hass.locale && this._hass.locale.language || undefined; }
     _nf(v, d) { return (isFinite(v) ? v : 0).toLocaleString(this._lang(), { minimumFractionDigits: d, maximumFractionDigits: d }); }
     _pw(w) { const a = Math.abs(w || 0); return a < 1000 ? [this._nf(Math.round(a), 0), 'W'] : [this._nf(a / 1000, a < 10000 ? 2 : 1), 'kW']; }
+    _price(id) { const v = this._num(id); if (v == null) return null; return /MWh/i.test(this._unit(id)) ? v / 1000 : /Wh$/.test(this._unit(id)) && !/kWh/i.test(this._unit(id)) ? v * 1000 : v; }
+    _balOn() { return this._cfg && this._cfg.balance !== false; }
     _more(id) { if (id) this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: id }, bubbles: true, composed: true })); }
 
     _data() {
@@ -227,16 +237,25 @@
       this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>
         <div class="hero" data-id="${c.home_power || ''}">
           <div class="hl"><span class="hi">${svg(IC.home)}</span><span>${esc(c.title || _('Energia'))}</span><span class="live"></span></div>
-          <div class="hv"><b id="home_v"></b><small id="home_u"></small></div>
-          <div class="mix" id="mix"><i class="ms" style="background:${COL.sol}"></i><i class="mb" style="background:${COL.bat}"></i><i class="mg" style="background:${COL.imp}"></i></div>
-          <div class="leg" id="leg"></div>
+          <div class="hrow">
+            <div><div class="hv"><b id="home_v"></b><small id="home_u"></small></div><div class="rate" id="rate"></div></div>
+            <div class="rng"><svg viewBox="0 0 60 60"><circle class="rb" cx="30" cy="30" r="23"/>${['s', 'b', 'g'].map((k) => `<circle id="rg_${k}" cx="30" cy="30" r="23" stroke="${{ s: COL.sol, b: COL.bat, g: COL.imp }[k]}" stroke-dasharray="0 ${RC}" transform="rotate(-90 30 30)"/>`).join('')}</svg>
+              <div class="ric"><span id="ri_s" style="color:${COL.sol}">${svg(IC.sun)}</span><span id="ri_b" style="color:${COL.bat}">${svg(IC.bat)}</span><span id="ri_g" style="color:${COL.imp}">${svg(IC.grid)}</span></div></div>
+          </div>
         </div>
+        ${this._balOn() ? '<div class="bal" id="bal"></div>' : ''}
         <div class="tiles">${tiles.join('')}</div>
         ${this._ovOn() ? '<div class="ov" id="ov"></div>' : ''}
       </ha-card>`;
       this._card = this.shadowRoot.querySelector('ha-card');
       this.shadowRoot.querySelectorAll('[data-id]').forEach((el) => {
         el.addEventListener('click', (e) => { e.stopPropagation(); this._more(el.getAttribute('data-id')); });
+      });
+      const bal = this.shadowRoot.getElementById('bal');
+      if (bal) bal.addEventListener('click', (e) => {
+        e.stopPropagation(); if (!this._ovOn()) return;
+        if (!this._ovOpen || this._ovMode !== 'day' || this._ovOff) { this._ovOpen = true; this._ls('open', '1'); this._ovMode = 'day'; this._ovOff = 0; this._ls('mode', 'day'); this._ovDraw(); this._ovLoad(); }
+        const ov = this.shadowRoot.getElementById('ov'); if (ov && ov.scrollIntoView) ov.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
       if (this._ovOn()) {
         if (this._ovMode == null) { this._ovMode = this._ls('mode') || 'day'; this._ovOff = 0; this._ovOpen = this._ls('open') === '1'; }
@@ -254,14 +273,26 @@
       const W = (id, f) => { const el = $(id); if (el) el.style.width = (Math.max(0, Math.min(1, f)) * 100).toFixed(1) + '%'; };
       // dom: dĺžka pruhu = spotreba / maximum, farby = odkiaľ ide
       let p = this._pw(d.home); T('home_v', p[0]); T('home_u', p[1]);
-      const m = d.mix, tot = d.mixTot, scale = Math.min(1, d.home / 1000 / c.home_max);
-      [['.ms', m.sol], ['.mb', m.bat], ['.mg', m.grid]].forEach((x) => {
-        const el = r.querySelector(x[0]), f = x[1] / tot * scale;
-        el.style.width = (f * 100).toFixed(2) + '%'; el.style.marginRight = f > 0.004 ? '2px' : '0';
+      // prstenec: odkiaľ dom práve berie, ikony len pri aktívnych zdrojoch
+      const m = d.mix, tot = d.mixTot, seg = [['s', m.sol], ['b', m.bat], ['g', m.grid]].map(([k, v]) => [k, v / tot > 0.005 ? v / tot : 0]);
+      const nOn = seg.filter((x) => x[1] > 0).length, gap = nOn > 1 ? 2 : 0;
+      let acc = 0;
+      seg.forEach(([k, f]) => {
+        const el = $('rg_' + k), len = f > 0 ? Math.max(0.5, f * RC - gap) : 0;
+        const da = `${len.toFixed(2)} ${RC}`, off = (-acc).toFixed(2);
+        if (el.getAttribute('stroke-dasharray') !== da) el.setAttribute('stroke-dasharray', da);
+        if (el.getAttribute('stroke-dashoffset') !== off) el.setAttribute('stroke-dashoffset', off);
+        acc += f * RC; $('ri_' + k).style.display = f > 0 ? '' : 'none';
       });
-      const leg = [[_('Solár'), m.sol, COL.sol], [_('Batéria'), m.bat, COL.bat], [_('Sieť'), m.grid, COL.imp]].filter((x) => x[1] > tot * 0.005)
-        .map((x) => `<span><i style="background:${x[2]}"></i>${x[0]} <b>${Math.round(x[1] / tot * 100)} %</b></span>`).join('') || '<span>–</span>';
-      if ($('leg').__h !== leg) { $('leg').__h = leg; $('leg').innerHTML = leg; }
+      // teraz €/h: predaj × cena predaja − nákup × cena nákupu
+      const pin = this._price(c.price_import), pout = this._price(c.price_export), rt = $('rate');
+      if (pin == null && pout == null) { if (rt.__h !== '') { rt.__h = ''; rt.innerHTML = ''; } }
+      else {
+        const v = Math.max(0, -d.g) / 1000 * (pout || 0) - Math.max(0, d.g) / 1000 * (pin || 0);
+        const col = v > 0.005 ? COL.exp : v < -0.005 ? COL.imp : 'var(--secondary-text-color)';
+        const h = `${_('teraz')} <b style="color:${col}">${this._eur(v, true)}/h</b>`;
+        if (rt.__h !== h) { rt.__h = h; rt.innerHTML = h; }
+      }
       // solár – jeden pruh poskladaný z PV1 + PV2
       if ($('sol_v')) {
         p = this._pw(d.sol); T('sol_v', p[0]); T('sol_u', p[1]);
@@ -311,7 +342,7 @@
       return null;
     }
     _ovStart() {
-      if (!(this._ovOn() || this._cfg.today !== false) || this._ovT || !this._hass || !this.isConnected) return;
+      if (!(this._ovOn() || this._cfg.today !== false || this._balOn()) || this._ovT || !this._hass || !this.isConnected) return;
       this._ovLoad(); this._ovT = setInterval(() => this._ovLoad(), 5 * 60000);
     }
     async _ovIds() {
@@ -379,7 +410,7 @@
         if (!this._ovIdsC) this._ovIdsC = await this._ovIds();
         const ids = this._ovIdsC, mode = this._ovMode || 'day', off = this._ovOff || 0;
         const d = await this._ovCompute(ids, mode, off);
-        this._today = mode === 'day' && off === 0 ? d : this._cfg.today !== false ? await this._ovCompute(ids, 'day', 0).catch(() => null) : null;
+        this._today = mode === 'day' && off === 0 ? d : (this._cfg.today !== false || this._balOn()) ? await this._ovCompute(ids, 'day', 0).catch(() => null) : null;
         this._todayDraw();
         this._ov = d;
       } catch (e) { console.error('igy-energy-card: prehľad', e); this._ov = { err: true, r: this._range(this._ovMode || 'day', this._ovOff || 0) }; }
@@ -433,6 +464,22 @@
       set('sol_d', on && t.has.sol ? `${_('dnes')} <b>${this._kwh(t.solT)}</b>${rest} kWh` : rest ? `${_('ešte')} <b>~${this._kwh(fv)}</b> kWh` : '');
       set('bat_d', on && (t.has.bin || t.has.bout) ? `${_('dnes')} <b>+${this._kwh(t.binT)}</b> / <b>−${this._kwh(t.boutT)}</b> kWh` : '');
       set('grid_d', on && (t.has.gin || t.has.gout) ? `${_('dnes')} ↓ <b>${this._kwh(t.ginT)}</b> · ↑ <b>${this._kwh(t.goutT)}</b> kWh` : '');
+      this._balDraw();
+    }
+    // dnešná bilancia v €: náklady zľava, príjem sprava, os v strede – cez os prechádza väčšia strana
+    _balDraw() {
+      const box = this.shadowRoot && this.shadowRoot.getElementById('bal'); if (!box) return;
+      const t = this._today, ok = t && !t.empty && !t.err && t.anyCost;
+      let h = '';
+      if (ok) {
+        const hc = t.hasCost, left = [['wat', hc.cwat ? t.cwat : 0, COL.wat, IC.wat], ['gas', hc.cgas ? t.cgas : 0, COL.gas, IC.gas], ['in', hc.cin ? t.cin : 0, COL.imp, IC.down]].filter((x) => x[1] > 0.004);
+        const right = [['out', hc.cout ? t.cout : 0, COL.exp, IC.up]].filter((x) => x[1] > 0.004), segs = left.concat(right);
+        const it = (x, neg) => `<span><i style="color:${x[2]}">${svg(x[3])}</i>${this._eur(neg ? -x[1] : x[1], true)}</span>`;
+        h = `<div class="bb">${segs.map((x) => `<i style="flex:${x[1].toFixed(3)};background:${x[2]}"></i>`).join('')}<span class="ax"></span>
+            <span class="bt" style="color:${t.bal >= 0 ? COL.exp : COL.imp}">${this._eur(t.bal, true)}</span></div>
+          <div class="bl"><span>${left.map((x) => it(x, true)).join('')}</span><span>${right.map((x) => it(x)).join('')}</span></div>`;
+      }
+      if (box.__h === h) return; box.__h = h; box.innerHTML = h; box.style.display = h ? '' : 'none';
     }
     _kwh(v) { const a = Math.abs(v || 0); return this._nf(a, a < 100 ? 1 : 0); }
     _eur(v, sign) {
@@ -517,8 +564,26 @@
     .hv small { font-size: 18px; font-weight: 300; color: var(--secondary-text-color); margin-left: 4px; }
     .soc { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--primary-text-color); font-variant-numeric: tabular-nums; }
     .hmax { margin-left: auto; font-size: 12px; color: var(--secondary-text-color); opacity: .7; }
-    .mix { display: flex; height: 12px; margin: 10px 0 8px; border-radius: 99px; overflow: hidden; background: rgba(127,127,127,.15); }
-    .mix i { flex: none; min-width: 0; transition: width 1s cubic-bezier(.3,.7,.3,1); }
+    .hrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .rate { font-size: 12.5px; color: var(--secondary-text-color); margin-top: 1px; font-variant-numeric: tabular-nums; }
+    .rate:empty { display: none; }
+    .rate b { font-weight: 500; }
+    .rng { display: flex; align-items: center; gap: 10px; flex: none; }
+    .rng svg { width: 64px; height: 64px; display: block; }
+    .rng circle { fill: none; stroke-width: 8; transition: stroke-dasharray 1s cubic-bezier(.3,.7,.3,1), stroke-dashoffset 1s cubic-bezier(.3,.7,.3,1); }
+    .rng .rb { stroke: rgba(127,127,127,.18); }
+    .ric { display: flex; flex-direction: column; gap: 5px; }
+    .ric span { display: flex; } .ric svg { width: 17px; height: 17px; }
+    .bal { margin-top: 14px; cursor: pointer; }
+    .bb { position: relative; display: flex; gap: 2px; height: 10px; margin-top: 26px; border-radius: 99px; background: rgba(127,127,127,.15); }
+    .bb i { height: 100%; min-width: 3px; transition: flex .8s; }
+    .bb i:first-child { border-radius: 99px 0 0 99px; } .bb i:last-of-type { border-radius: 0 99px 99px 0; } .bb i:only-of-type { border-radius: 99px; }
+    .bb .ax { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--primary-text-color); }
+    .bb .bt { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 14px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .bl { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
+    .bl > span { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+    .bl > span > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+    .bl i { display: inline-flex; } .bl svg { width: 14px; height: 14px; }
     .leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--secondary-text-color); }
     .leg i, .pv span i { display: inline-block; width: 8px; height: 8px; border-radius: 3px; margin-right: 6px; }
     .leg b { color: var(--primary-text-color); font-weight: 500; }
@@ -605,8 +670,9 @@
         const sec = (title, icon, schema, expanded) => ({ type: 'expandable', name: '', title, icon, expanded: !!expanded, schema });
         f.schema = [
           sec(_('Všeobecné'), 'mdi:home-lightning-bolt-outline', [
-            { name: 'title', selector: { text: {} } }, ent('home_power', 'power'), num('home_max', 'kW'),
-            { type: 'grid', name: '', schema: [{ name: 'overview', selector: { boolean: {} } }, { name: 'today', selector: { boolean: {} } }] }], true),
+            { name: 'title', selector: { text: {} } }, ent('home_power', 'power'),
+            { type: 'grid', name: '', schema: [{ name: 'overview', selector: { boolean: {} } }, { name: 'today', selector: { boolean: {} } }, { name: 'balance', selector: { boolean: {} } }] },
+            { type: 'grid', name: '', schema: [ent('price_import'), ent('price_export')] }], true),
           sec(_('Solár'), 'mdi:solar-power-variant', [ent('solar_power', 'power'), num('solar_max', 'kW'),
             { type: 'grid', name: '', schema: [ent('pv1_power', 'power'), { name: 'pv1_name', selector: { text: {} } }, ent('pv2_power', 'power'), { name: 'pv2_name', selector: { text: {} } }] },
             ent('solar_forecast', 'energy'), stats(['stat_solar', 'stat_pv1', 'stat_pv2'])]),
@@ -620,7 +686,7 @@
             { type: 'grid', name: '', schema: [num('tuv_min', '°C', 100, 1), num('tuv_max', '°C', 100, 1)] }])
         ];
         const L = {
-          title: _('Nadpis karty'), home_power: _('Spotreba domu – výkon'), home_max: _('Mierka pruhu spotreby'), overview: _('Prehľad (deň / týždeň / mesiac / rok)'), today: _('Dnešné súčty v dlaždiciach'),
+          title: _('Nadpis karty'), home_power: _('Spotreba domu – výkon'), balance: _('Bilancia dňa v € v hlavičke'), price_import: _('Cena nákupu (€/kWh)'), price_export: _('Cena predaja (€/kWh)'), overview: _('Prehľad (deň / týždeň / mesiac / rok)'), today: _('Dnešné súčty v dlaždiciach'),
           solar_power: _('Výkon FVE spolu'), solar_max: _('Mierka FVE'), pv1_power: _('PV1 – výkon'), pv1_name: _('PV1 – názov'), pv2_power: _('PV2 – výkon'), pv2_name: _('PV2 – názov'), solar_forecast: _('Predpoveď – zostávajúca výroba dnes'),
           battery_soc: _('Nabitie (SOC %)'), battery_power: _('Výkon batérie'), battery_invert: _('Otočiť znamienko výkonu'), battery_max: _('Mierka výkonu batérie'),
           grid_power: _('Výkon siete'), grid_invert: _('Otočiť znamienko výkonu'), grid_max: _('Mierka siete'),
@@ -632,7 +698,8 @@
           stat_gas: _('Spotreba plynu'), cost_gas: _('Náklad na plyn'), stat_water: _('Spotreba vody'), cost_water: _('Náklad na vodu') };
         const H = {
           home_power: _('W alebo kW. Bez neho sa spotreba dopočíta zo solára, batérie a siete.'),
-          home_max: _('Pri tejto hodnote je pruh plný.'),
+          balance: _('Náklady a príjem dnes z Energy dashboardu, os v strede.'),
+          price_import: _('Voliteľné – spolu s cenou predaja ukáže „teraz … €/h“.'),
           overview: _('Rozbaľovací prehľad dole, dáta z Energy dashboardu.'),
           today: _('Napr. „dnes 21,5 kWh“ pod solárom, batériou a sieťou.'),
           solar_power: _('Ak chýba, sčíta sa PV1 + PV2.'),
@@ -5049,4 +5116,4 @@
     window.customCards.push({ type: 'igy-energy-story-card', name: 'Igy Energy Story', description: _('Čo prináša FVE a batéria – prínos, obchod so sieťou, návratnosť a náklady domu'), preview: false });
 })();
 
-console.info('%c IGY-CARDS %c 1.6.1 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
+console.info('%c IGY-CARDS %c 1.7.0 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');

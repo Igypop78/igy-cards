@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0] – 2026-11-03
+### Changed
+- Energy card: new header.
+  - Next to the current power there is a ring showing where the house is drawing from right now (solar / battery / grid); icons are shown only for active sources. The old bar with percentages is gone (`home_max` is no longer used).
+  - New optional `price_import` / `price_export` (€/kWh, €/MWh also works) show *now +0.42 €/h* – green when earning, red when paying.
+  - New bar *today's balance in €* (`balance`, on by default): costs (water, gas, import) from the left, income (export) from the right and an axis in the middle – the larger side crosses it. The result sits above the axis, the amounts with icons below. Tap opens today's overview.
+
 ## [1.6.1] – 2026-11-02
 ### Fixed
 - Room card: the area / device prefix is now removed from names regardless of case and diacritics (area *Kúpelňa Dole* + entity *Kúpeľňa dole hlavné svetlo* → *Hlavné svetlo*), and also when the device name itself starts with the area name (*Kúpeľňa dole svetlá Ping* → *Ping*).
