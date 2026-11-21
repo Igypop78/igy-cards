@@ -21,7 +21,7 @@ Eleven custom Lovelace cards for Home Assistant in one shared visual style – e
 | Buttons | `custom:igy-buttons-card` | Buttons as tiles, pills or icons, optional confirm-by-second-tap |
 | Markdown | `custom:igy-markdown-card` | Markdown/templates in the same style, `---` splits content into groups |
 | Circuits | `custom:igy-circuits-card` | Power per circuit and phase, collapsible breaker groups |
-| Battery | `custom:igy-battery-card` | Main battery meter (e.g. Victron SmartShunt) and a table of individual BMS (SOC, cell delta, temperature, cycles, balancing) |
+| Battery | `custom:igy-battery-card` | Main battery meter (e.g. Victron SmartShunt), what is sent to the inverter (current limits, voltage, temperature, control mode) and a table of individual BMS (SOC, highest/lowest cell, cell delta, temperature, cycles, balancing) |
 | Cameras | `custom:igy-camera-card` | Camera grid via WebRTC (go2rtc / Frigate); tap opens full screen with fast low-res start, pinch zoom and pan. Requires [WebRTC Camera](https://github.com/AlexxIT/WebRTC) |
 
 | | | |
@@ -137,6 +137,25 @@ packs:
     delta: sensor.bms_1_delta_cell_voltage
     temp: sensor.bms_1_temperature_sensor_1
     balancing: sensor.bms_1_balancing   # JK BMS: 0 off, 1/2 balancing
+    cell_max: sensor.bms_1_max_cell_voltage     # optional – "Cells" column ▲ / ▼
+    cell_min: sensor.bms_1_min_cell_voltage
+    charging: binary_sensor.bms_1_charging      # optional – red note when BMS turns it off
+    discharging: binary_sensor.bms_1_discharging
+control:                                # optional – what is sent to the inverter (e.g. ESP → Deye over CAN)
+  name: Deye
+  mode: sensor.esp_can_control_mode           # text, e.g. "BMS (3/3)", "Fallback…"
+  reason: sensor.esp_can_limited_by           # text, e.g. "high cell 3.512 V"
+  sending: binary_sensor.esp_can_sending
+  enabled: switch.esp_can_control
+  charge_current: sensor.esp_can_charge_current
+  charge_cap: number.esp_can_charge_cap
+  discharge_current: sensor.esp_can_discharge_current
+  discharge_cap: number.esp_can_discharge_cap
+  charge_voltage: number.esp_can_charge_voltage
+  cell_voltage: sensor.esp_can_charge_voltage_per_cell
+  temp: sensor.esp_can_battery_temperature
+  fallback: number.esp_can_fallback_current
+cell_warn: [3.5, 3.58, 3.0, 2.9]        # V – highest cell orange / red, lowest cell orange / red
 ```
 
 ```yaml

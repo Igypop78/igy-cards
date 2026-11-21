@@ -1,4 +1,4 @@
-/*! igy-cards v1.7.3 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
+/*! igy-cards v1.8.0 – 11 kariet pre Home Assistant · https://github.com/Igypop78/igy-cards · licencia MIT */
 
 /* ===== igy-energy-card ===== */
 /*
@@ -3959,11 +3959,23 @@
  *       soc: …  voltage: …  current: …  temp: …
  *       cycles: …                           # voliteľné – „324 cyklov“ pod názvom
  *       balancing: …                        # voliteľné – ikona ⚖ pri názve, keď nie je 0 / off
+ *       cell_max: …  cell_min: …            # voliteľné – stĺpec „Články“ (najvyšší ▲ / najnižší ▼)
+ *       charging: …  discharging: …         # voliteľné – BMS povolenie; keď je vypnuté, ukáže sa pod názvom
+ *   control:                                # voliteľné – čo sa posiela do meniča (napr. ESP CAN → Deye)
+ *     name: Deye
+ *     mode: sensor.esp_can_riadenie_rezim             # text: „BMS (3/3 batérie)“, „Záloha…“, „Vypnuté…“
+ *     reason: sensor.esp_can_riadenie_co_obmedzuje_nabijanie
+ *     sending: binary_sensor.esp_can_deye_posiela_sa_soc_a_limity
+ *     enabled: switch.esp_can_riadenie_limitov_podla_bms
+ *     charge_current: …  charge_cap: …       # posielaný prúd a strop (number)
+ *     discharge_current: …  discharge_cap: …
+ *     charge_voltage: …  cell_voltage: …  temp: …  fallback: …
  *   extras:                                 # voliteľné – ďalšie hodnoty dole (teplota meniča, ventilátor…)
  *     - entity: sensor.temperature_inverter_keep
  *       name: Teplota meniča
  *   pack_max: 5000                          # W na plný pásik výkonu BMS
  *   delta_warn: [0.02, 0.05]                # V – rozdiel článkov: zelená / oranžová / červená
+ *   cell_warn: [3.5, 3.58, 3.0, 2.9]        # V – najvyšší článok: oranžová / červená, najnižší: oranžová / červená
  */
 (function () {
   'use strict';
@@ -4014,20 +4026,56 @@
     "Nová hodnota": "New value",
     "vyber entitu": "choose an entity",
     "Entita": "Entity",
-    "Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.": "Battery: main meter (SOC, power) and a table of individual BMS."
+    "Batéria: hlavný merač (SOC, výkon) a tabuľka jednotlivých BMS.": "Battery: main meter (SOC, power) and a table of individual BMS.",
+    "Články": "Cells",
+    "nabíjanie vypnuté": "charging off",
+    "vybíjanie vypnuté": "discharging off",
+    "Nabíjanie": "Charge",
+    "Vybíjanie": "Discharge",
+    "Napätie nabíjania": "Charge voltage",
+    "strop {0}": "cap {0}",
+    "V/čl.": "V/cell",
+    "najchladnejšia": "coldest pack",
+    "Obmedzuje": "Limited by",
+    "Riadenie": "Control",
+    "zapnuté": "on",
+    "vypnuté": "off",
+    "záloha {0}": "fallback {0}",
+    "neposiela sa": "not sending",
+    "Do meniča sa neposiela nič – menič ide podľa vlastných nastavení.": "Nothing is sent – the inverter runs on its own settings.",
+    "Do meniča": "To inverter",
+    "Riadenie meniča (voliteľné)": "Inverter control (optional)",
+    "Najvyšší článok": "Highest cell",
+    "Najnižší článok": "Lowest cell",
+    "Nabíjanie povolené (BMS)": "Charging allowed (BMS)",
+    "Vybíjanie povolené (BMS)": "Discharging allowed (BMS)",
+    "Názov meniča": "Inverter name",
+    "Režim (text)": "Mode (text)",
+    "Čo obmedzuje (text)": "Limited by (text)",
+    "Posiela sa (binary_sensor)": "Sending (binary_sensor)",
+    "Riadenie zapnuté (switch)": "Control on (switch)",
+    "Posielaný nabíjací prúd": "Sent charge current",
+    "Strop nabíjacieho prúdu": "Charge current cap",
+    "Posielaný vybíjací prúd": "Sent discharge current",
+    "Strop vybíjacieho prúdu": "Discharge current cap",
+    "Nabíjacie napätie": "Charge voltage",
+    "Napätie na článok": "Voltage per cell",
+    "Posielaná teplota": "Sent temperature",
+    "Záložný prúd": "Fallback current"
   };
 
-  const VERSION = '1.1.2';
+  const VERSION = '1.2.0';
   const G = '#30d158', R = '#ff6961', O = '#ff9f0a', MUTE = 'var(--secondary-text-color)';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   const BAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/></svg>';
   const COLS = [
     { k: 'power', t: 'Výkon', w: '1.2fr' }, { k: 'soc', t: 'SOC', w: '.8fr' }, { k: 'voltage', t: 'Napätie', w: '1fr' },
-    { k: 'current', t: 'Prúd', w: '.9fr' }, { k: 'delta', t: 'Δ článkov', w: '1fr' }, { k: 'temp', t: 'Teplota', w: '.9fr' }];
+    { k: 'current', t: 'Prúd', w: '.9fr' }, { k: 'cell_max', t: 'Články', w: '1fr' }, { k: 'delta', t: 'Δ článkov', w: '1fr' }, { k: 'temp', t: 'Teplota', w: '.9fr' }];
+  const CTRL = ['mode', 'reason', 'sending', 'enabled', 'charge_current', 'charge_cap', 'discharge_current', 'discharge_cap', 'charge_voltage', 'cell_voltage', 'temp', 'fallback'];
 
   function normalize(c) {
     c = JSON.parse(JSON.stringify(c || {}));
-    c.main = c.main || {}; c.packs = (c.packs || []).filter(Boolean); c.extras = (c.extras || []).map((x) => typeof x === 'string' ? { entity: x } : x).filter(Boolean);
+    c.main = c.main || {}; c.control = c.control || {}; c.packs = (c.packs || []).filter(Boolean); c.extras = (c.extras || []).map((x) => typeof x === 'string' ? { entity: x } : x).filter(Boolean);
     return c;
   }
 
@@ -4075,6 +4123,26 @@
     .ex { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; padding: 10px 12px 12px; }
     .ex div { min-width: 0; font-size: 11.5px; color: var(--secondary-text-color); }
     .ex b { display: block; margin-top: 2px; font-size: 14.5px; font-weight: 500; color: var(--primary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    .tr .c.cl { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-size: 12.5px; }
+    .tr .c.cl i { font-style: normal; font-size: 8px; color: var(--secondary-text-color); margin-right: 3px; vertical-align: 1px; }
+    .tr .n .offs { white-space: normal; line-height: 1.2; margin-top: 1px; }
+    .tr .n .off { color: ${R}; }
+    /* riadenie meniča */
+    .ct { padding: 12px 14px 12px; display: grid; gap: 10px; }
+    .ch { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--secondary-text-color); }
+    .ch b { color: var(--primary-text-color); font-weight: 600; }
+    .pill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; background: rgba(127,127,127,.15); color: var(--primary-text-color); white-space: nowrap; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+    .pill::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, ${MUTE}); }
+    .cg { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 10px; }
+    .cg div { min-width: 0; font-size: 11px; color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
+    .cg b { display: block; margin: 2px 0 1px; font-size: 19px; font-weight: 600; color: var(--primary-text-color); white-space: nowrap; }
+    .cg b small { font-size: 12px; font-weight: 500; color: var(--secondary-text-color); margin-left: 1px; }
+    .cg .bar { display: block; height: 4px; border-radius: 9px; background: rgba(127,127,127,.18); margin: 4px 0 3px; overflow: hidden; }
+    .cg .bar i { display: block; height: 100%; border-radius: 9px; transition: width .5s ease; }
+    .cf { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--secondary-text-color); border-top: 1px solid rgba(127,127,127,.14); padding-top: 9px; }
+    .cf b { color: var(--primary-text-color); font-weight: 500; }
+    .cf .rg { margin-left: auto; }
+    .warnline { font-size: 12.5px; color: ${R}; }
     .empty { font-size: 13px; color: var(--secondary-text-color); padding: 8px 2px; }
   `;
 
@@ -4114,7 +4182,7 @@
 
     _render() {
       if (!this._hass || !this._cfg) return;
-      const c = this._cfg, m = c.main, ids = [m.soc, m.power, m.voltage, m.current, m.time].concat(...c.packs.map((p) => COLS.map((x) => p[x.k]).concat([p.cycles, p.balancing])), c.extras.map((x) => x.entity)).filter(Boolean);
+      const c = this._cfg, m = c.main, ids = [m.soc, m.power, m.voltage, m.current, m.time].concat(...c.packs.map((p) => COLS.map((x) => p[x.k]).concat([p.cycles, p.balancing, p.cell_min, p.charging, p.discharging])), CTRL.map((k) => c.control[k]), c.extras.map((x) => x.entity)).filter(Boolean);
       const sig = ids.map((id) => { const s = this._s(id); return s ? s.state : '?'; }).join('|');
       if (sig === this._sig) return; this._sig = sig;
       if (!this.shadowRoot) {
@@ -4134,6 +4202,34 @@
           + `<div class="sb${pw != null && pw > 20 ? ' chg' : ''}" data-more="${esc(m.soc || '')}"><i style="width:${Math.max(0, Math.min(100, soc || 0)).toFixed(1)}%;background-color:${this._sc(soc)}"></i></div>`
           + `<div class="m2">${v != null ? `<span data-more="${esc(m.voltage)}"><b>${this._f(v, 2)}</b> V</span>` : ''}${a != null ? `<span data-more="${esc(m.current)}"><b>${this._f(a, 1)}</b> A</span>` : ''}<span class="src">${esc(m.name || '')}</span></div></div>`;
       }
+      // riadenie meniča – čo sa posiela (napr. ESP CAN → Deye)
+      const k = c.control;
+      if (k.charge_current || k.discharge_current || k.mode) {
+        const sendS = this._s(k.sending), sending = !sendS || sendS.state === 'on';
+        const modeS = this._s(k.mode), mode = modeS ? modeS.state : '';
+        const en = this._s(k.enabled), enOn = !en || en.state === 'on';
+        const dot = !sending ? R : !enOn ? MUTE : /záloha|fallback/i.test(mode) ? O : G;
+        const pill = !sending ? _('neposiela sa') : (mode || (enOn ? _('zapnuté') : _('vypnuté')));
+        const amp = (id, cap, col) => {
+          const a = this._n(id), cp = this._n(cap), w = a == null ? 0 : Math.max(0, Math.min(100, a / (cp || a || 1) * 100));
+          return `<b>${a == null ? '–' : this._f(a, 0) + '<small>A</small>'}</b><span class="bar"><i style="width:${w.toFixed(1)}%;background:${a === 0 ? R : col}"></i></span>${cp != null ? _('strop {0}', this._f(cp, 0) + ' A') : '&nbsp;'}`;
+        };
+        const cv = this._n(k.charge_voltage), cc = this._n(k.cell_voltage), tp = this._n(k.temp);
+        h += `<div class="box ct"><div class="ch">${_('Do meniča')} <b>${esc(k.name || '')}</b><span class="pill" style="--dot:${dot}" data-more="${esc(k.mode || k.sending || '')}">${esc(pill)}</span></div>`;
+        if (!sending) h += `<div class="warnline">${_('Do meniča sa neposiela nič – menič ide podľa vlastných nastavení.')}</div>`;
+        h += `<div class="cg">`
+          + (k.charge_current ? `<div data-more="${esc(k.charge_current)}">${_('Nabíjanie')}${amp(k.charge_current, k.charge_cap, G)}</div>` : '')
+          + (k.discharge_current ? `<div data-more="${esc(k.discharge_current)}">${_('Vybíjanie')}${amp(k.discharge_current, k.discharge_cap, O)}</div>` : '')
+          + (k.charge_voltage ? `<div data-more="${esc(k.charge_voltage)}">${_('Napätie')}<b>${cv == null ? '–' : this._f(cv, 1) + '<small>V</small>'}</b>${cc != null ? this._f(cc, 3) + ' ' + _('V/čl.') : '&nbsp;'}</div>` : '')
+          + (k.temp ? `<div data-more="${esc(k.temp)}">${_('Teplota')}<b style="${tp != null && tp < 5 ? 'color:#64d2ff' : ''}">${tp == null ? '–' : this._f(tp, 1) + '<small>°C</small>'}</b>${_('najchladnejšia')}</div>` : '')
+          + `</div>`;
+        const rs = this._s(k.reason), fb = this._n(k.fallback);
+        const foot = [rs ? `<span data-more="${esc(k.reason)}">${_('Obmedzuje')}: <b>${esc(rs.state)}</b></span>` : '',
+          fb != null ? `<span data-more="${esc(k.fallback)}">${_('záloha {0}', '<b>' + this._f(fb, 0) + ' A</b>')}</span>` : '',
+          en ? `<span class="rg" data-more="${esc(k.enabled)}">${_('Riadenie')}: <b style="color:${enOn ? G : O}">${enOn ? _('zapnuté') : _('vypnuté')}</b></span>` : ''].filter(Boolean).join('');
+        if (foot) h += `<div class="cf">${foot}</div>`;
+        h += '</div>';
+      }
       // BMS
       if (c.packs.length) {
         const cols = COLS.filter((x) => c.packs.some((p) => p[x.k]));
@@ -4152,6 +4248,11 @@
             if (x.k === 'voltage') { const v = this._V(id); return `<span class="c${v == null ? ' na' : ''}" data-more="${esc(id)}">${v == null ? '–' : this._f(v, 2) + '<small>V</small>'}</span>`; }
             if (x.k === 'current') { const a = this._n(id); return `<span class="c${a == null ? ' na' : ''}" data-more="${esc(id)}">${a == null ? '–' : this._f(a, 1) + '<small>A</small>'}</span>`; }
             if (x.k === 'delta') { const d = this._V(id); return `<span class="c" data-more="${esc(id)}" style="color:${this._dc(d)}">${d == null ? '–' : this._f(d * 1000, 0) + '<small>mV</small>'}</span>`; }
+            if (x.k === 'cell_max') {
+              const w = c.cell_warn || [3.5, 3.58, 3.0, 2.9], hi = this._V(id), lo = this._V(p.cell_min);
+              const ch = hi == null ? '' : hi >= w[1] ? R : hi >= w[0] ? O : '', cl = lo == null ? '' : lo <= w[3] ? R : lo <= w[2] ? O : '';
+              return `<span class="c cl" data-more="${esc(id)}"><span style="color:${ch}"><i>▲</i>${hi == null ? '–' : this._f(hi, 3)}</span>${p.cell_min ? `<span style="color:${cl}"><i>▼</i>${lo == null ? '–' : this._f(lo, 3)}</span>` : ''}</span>`;
+            }
             if (x.k === 'temp') { const t = this._n(id); return `<span class="c${t == null ? ' na' : ''}" data-more="${esc(id)}" style="${t != null && t >= 45 ? 'color:' + R : ''}">${t == null ? '–' : this._f(t, 1) + '<small>°C</small>'}</span>`; }
             return '<span class="c"></span>';
           };
@@ -4159,8 +4260,10 @@
           const cy = this._n(p.cycles), bs = this._s(p.balancing), bv = bs ? (bs.state === 'on' ? 1 : parseFloat(bs.state)) : NaN, bal = !isNaN(bv) && bv > 0;
           // JK BMS (syssi/esphome-jk-bms): 0 = vypnuté, 1 = vyrovnáva pri nabíjaní, 2 = pri vybíjaní
           const balT = bv === 2 ? _('vyrovnáva články pri vybíjaní') : bv === 1 ? _('vyrovnáva články pri nabíjaní') : _('vyrovnáva články');
+          const off = (id, t) => { const s = this._s(id); return s && s.state === 'off' ? `<span class="off">${t}</span>` : ''; };
+          const offs = [off(p.charging, _('nabíjanie vypnuté')), off(p.discharging, _('vybíjanie vypnuté'))].filter(Boolean).join('<br>');
           const sub = [p.info ? esc(p.info) : '', cy != null ? _('{0} cyklov', Math.round(cy)) : ''].filter(Boolean).join(' · ');
-          h += `<div class="tr" data-more="${esc(p.power || p.soc || '')}"><div class="n">${esc(p.name || 'BMS ' + (i + 1))}${bal ? ` <span class="bal" title="${balT}">⚖</span>` : ''}${sub ? `<small>${sub}</small>` : ''}</div>${cols.map(cell).join('')}</div>`;
+          h += `<div class="tr" data-more="${esc(p.power || p.soc || '')}"><div class="n">${esc(p.name || 'BMS ' + (i + 1))}${bal ? ` <span class="bal" title="${balT}">⚖</span>` : ''}${sub ? `<small>${sub}</small>` : ''}${offs ? `<small class="offs">${offs}</small>` : ''}</div>${cols.map(cell).join('')}</div>`;
         });
         if (any && c.packs.length > 1) {
           const mw = this._w(m.power);
@@ -4207,7 +4310,7 @@
     set hass(h) { setLang(h); const f = !this._hass; this._hass = h; if (f && this._cfg) this._build(); this.querySelectorAll('ha-form').forEach((x) => { x.hass = h; }); }
     _emit() {
       const c = JSON.parse(JSON.stringify(Object.assign({ type: 'custom:igy-battery-card' }, this._cfg)));
-      if (!c.packs.length) delete c.packs; if (!c.extras.length) delete c.extras;
+      if (!c.packs.length) delete c.packs; if (!c.extras.length) delete c.extras; if (!Object.keys(c.control).length) delete c.control;
       this._last = JSON.stringify(normalize(c));
       this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: c }, bubbles: true, composed: true }));
     }
@@ -4221,6 +4324,7 @@
     _build() {
       const c = this._cfg, open = this._open || (this._open = new Set());
       this.innerHTML = `<style>${EDCSS}</style><div class="ed"><div id="top"></div><div class="sec">${_('Hlavný merač (celá batéria)')}</div><div id="main"></div>
+        <div class="sec">${_('Riadenie meniča (voliteľné)')}</div><div id="ctrl"></div>
         <div class="sec">${_('Jednotlivé BMS')}</div><div class="hint">${_('Stĺpce v tabuľke sa zobrazia len pre hodnoty, ktoré vyplníš aspoň pri jednom BMS.')}</div><div class="items" id="packs"></div><button class="btn" id="addp">${_('+ Pridať BMS')}</button>
         <div class="sec">${_('Ďalšie hodnoty')}</div><div class="items" id="extras"></div><button class="btn" id="adde">${_('+ Pridať hodnotu')}</button></div>`;
       this.querySelector('#top').appendChild(this._form({ title: c.title || '', pack_max: c.pack_max || 5000 },
@@ -4231,12 +4335,20 @@
         [{ name: 'name', selector: { text: {} } }, ENT('soc'), ENT('power'), ENT('voltage'), ENT('current'), ENT('time')],
         { name: _('Názov (napr. SmartShunt)'), soc: 'SOC', power: _('Výkon (+ nabíja / − vybíja)'), voltage: _('Napätie'), current: _('Prúd (voliteľné)'), time: _('Zostávajúci čas (voliteľné)') }, null,
         (v) => { this._set(c.main, v, mk); this._emit(); }));
-      const pk = ['name', 'info', 'power', 'soc', 'voltage', 'current', 'delta', 'temp', 'cycles', 'balancing'];
+      const ck = ['name'].concat(CTRL);
+      this.querySelector('#ctrl').appendChild(this._form(Object.assign({}, ...ck.map((x) => ({ [x]: c.control[x] || '' }))),
+        [{ name: 'name', selector: { text: {} } }].concat(CTRL.map(ENT)),
+        { name: _('Názov meniča'), mode: _('Režim (text)'), reason: _('Čo obmedzuje (text)'), sending: _('Posiela sa (binary_sensor)'), enabled: _('Riadenie zapnuté (switch)'),
+          charge_current: _('Posielaný nabíjací prúd'), charge_cap: _('Strop nabíjacieho prúdu'), discharge_current: _('Posielaný vybíjací prúd'), discharge_cap: _('Strop vybíjacieho prúdu'),
+          charge_voltage: _('Nabíjacie napätie'), cell_voltage: _('Napätie na článok'), temp: _('Posielaná teplota'), fallback: _('Záložný prúd') }, null,
+        (v) => { this._set(c.control, v, ck); this._emit(); }));
+      const pk = ['name', 'info', 'power', 'soc', 'voltage', 'current', 'cell_max', 'cell_min', 'delta', 'temp', 'cycles', 'balancing', 'charging', 'discharging'];
       const pb = this.querySelector('#packs');
       c.packs.forEach((p, i) => pb.appendChild(this._item(c.packs, i, p.name || 'BMS ' + (i + 1), [p.info, p.power].filter(Boolean).join(' · ') || _('vyber senzory'), 'p' + i,
         Object.assign({}, ...pk.map((k) => ({ [k]: p[k] || '' }))),
-        [{ name: 'name', selector: { text: {} } }, { name: 'info', selector: { text: {} } }, ENT('power'), ENT('soc'), ENT('voltage'), ENT('current'), ENT('delta'), ENT('temp'), ENT('cycles'), ENT('balancing')],
-        { name: _('Názov'), info: _('Popis (napr. 280 Ah)'), power: _('Výkon'), soc: 'SOC', voltage: _('Napätie'), current: _('Prúd'), delta: _('Rozdiel článkov'), temp: _('Teplota'), cycles: _('Počet cyklov (pod názvom)'), balancing: _('Vyrovnávanie článkov (ikona ⚖ pri názve)') },
+        [{ name: 'name', selector: { text: {} } }, { name: 'info', selector: { text: {} } }, ENT('power'), ENT('soc'), ENT('voltage'), ENT('current'), ENT('cell_max'), ENT('cell_min'), ENT('delta'), ENT('temp'), ENT('cycles'), ENT('balancing'), ENT('charging'), ENT('discharging')],
+        { name: _('Názov'), info: _('Popis (napr. 280 Ah)'), power: _('Výkon'), soc: 'SOC', voltage: _('Napätie'), current: _('Prúd'), delta: _('Rozdiel článkov'), temp: _('Teplota'), cycles: _('Počet cyklov (pod názvom)'), balancing: _('Vyrovnávanie článkov (ikona ⚖ pri názve)'),
+          cell_max: _('Najvyšší článok'), cell_min: _('Najnižší článok'), charging: _('Nabíjanie povolené (BMS)'), discharging: _('Vybíjanie povolené (BMS)') },
         (v, it) => { this._set(p, v, pk); it.querySelector('.tx b').textContent = p.name || 'BMS ' + (i + 1); this._emit(); })));
       this.querySelector('#addp').onclick = () => { c.packs.push({ name: 'BMS ' + (c.packs.length + 1) }); open.add('p' + (c.packs.length - 1)); this._emit(); this._build(); };
       const eb = this.querySelector('#extras');
@@ -5137,4 +5249,4 @@
     window.customCards.push({ type: 'igy-energy-story-card', name: 'Igy Energy Story', description: _('Čo prináša FVE a batéria – prínos, obchod so sieťou, návratnosť a náklady domu'), preview: false });
 })();
 
-console.info('%c IGY-CARDS %c 1.7.3 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
+console.info('%c IGY-CARDS %c 1.8.0 ', 'background:#ffb340;color:#000;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');

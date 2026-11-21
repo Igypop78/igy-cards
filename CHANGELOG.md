@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.0] – 2026-11-21
+### Added
+- Battery card: new optional `control` section – what is sent to the inverter (e.g. ESP CAN → Deye): charge / discharge current with a bar against the cap, charge voltage and voltage per cell, battery temperature (coldest pack), control mode pill (green = BMS, orange = fallback, grey = off, red = nothing is sent + warning), what currently limits charging, fallback current and whether control is on. Every value opens its entity.
+- Battery card: new pack column *Cells* – highest ▲ and lowest ▼ cell voltage (`cell_max`, `cell_min`), coloured by `cell_warn` (default 3.50 / 3.58 V high, 3.00 / 2.90 V low).
+- Battery card: optional `charging` / `discharging` per pack – when the BMS turns it off, a red note appears under the pack name.
+
 ## [1.7.3] – 2026-11-03
 ### Changed
 - Energy card: today's balance above the axis is larger.
